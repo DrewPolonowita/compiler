@@ -1,4 +1,4 @@
-let fiveOrFour = 4;
-let fiveOrFour = 5;
+let int fiveOrFour = 4;
+let int fiveOrFour = 5;
 println(fiveOrFour);
 println(fiveOrFour - 4)

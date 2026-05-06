@@ -6,12 +6,6 @@ pub struct Lexer {
     current_index: usize,
     next_token: Option<Token>
 }
-/***
-FIXES FOR THE FUTURE
-REGEX IS CREATED MULTIPLE TIMES PER TOKEN
-DOCUMENT
-*/
-
 
 fn get_longest_matched_string(text : &str) -> (Option<Token>, usize) {
     let mut longest_token: Option<Token> = None;

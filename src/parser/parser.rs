@@ -17,6 +17,7 @@ pub enum ParseTree {
 
     Arithmetic(Token),
     Number(Token),
+    String(Token),
     Identifier(Token),
 }
 
@@ -144,6 +145,7 @@ fn factor(lexer: &mut Lexer) -> ParseTree {
 
     match next_token {
         Number(_) => ParseTree::Number(next_token),
+        String(_) => ParseTree::String(next_token),
         Identifier(_) => ParseTree::Identifier(next_token),
         LParen => {
             lexer.next();

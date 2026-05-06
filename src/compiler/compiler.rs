@@ -19,6 +19,7 @@ pub fn compile(tree: ParseTree) -> String {
 
         Arithmetic(token) => arithmetic_to_string(&token),
         Number(Token::Number(num)) => num,
+        String(Token::String(str)) => str_to_string(&str),
         Identifier(Token::Identifier(id)) => id,
         _ => todo!()
     }
@@ -36,8 +37,8 @@ fn arithmetic_to_string(token: &Token) -> String {
     }
 }
 
-fn print_to_string(tree: ParseTree) -> String { format!("println!(\"{{}}\", {})", compile(tree)) }
-fn factor_to_string(tree: ParseTree) -> String { format!("({})", compile(tree)) }
+fn print_to_string(tree: ParseTree) -> String {format!("std::cout << {} << std::endl", compile(tree)) }
+fn factor_to_string(tree: ParseTree) -> String {format!("({})", compile(tree)) }
 fn expression_to_string(trees: Vec<ParseTree>, operators: Vec<Token>) -> String {
     let mut trees = trees.into_iter();
     let mut operators = operators.into_iter();
@@ -51,15 +52,11 @@ fn expression_to_string(trees: Vec<ParseTree>, operators: Vec<Token>) -> String 
 
         final_string = format!("{} {} {}", final_string, arithmetic_to_string(&op), compile(tree))
     }
-
-
     final_string
 }
-
 fn assignment_to_string(id: ParseTree, expr_type: ParseTree, expr: ParseTree) -> String {
-    format!("let mut {} : {} = {}", compile(id), compile(expr_type), compile(expr))
+    format!("{} {} = {}", compile(expr_type), compile(id), compile(expr))
 }
-
 fn statement_to_string(stmt: ParseTree) -> String {
     format!("{};", compile(stmt))
 }
@@ -72,17 +69,18 @@ fn statements_to_string(stmts: Vec<ParseTree>) -> String {
 
     final_string
 }
-
 fn program_to_string(program: ParseTree) -> String {
     compile(program)
 }
-
 fn token_to_string(token: Token) -> String {
     use Token::*;
     match token {
-        IntType => "i64",
-        StringType => "&str",
+        IntType => "int",
+        StringType => "std::string",
         BoolType => "bool",
         _ => todo!()
     }.to_string()
+}
+fn str_to_string(str: &str) -> String {
+    format!("std::string({})", str.to_string())
 }

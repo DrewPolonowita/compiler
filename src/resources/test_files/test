@@ -1,2 +1,0 @@
-let int test = 5;
-println(test);

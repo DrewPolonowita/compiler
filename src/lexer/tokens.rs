@@ -22,11 +22,13 @@ pub enum Token {
 
     Number_,
     Number(String),
+    String_,
+    String(String),
     Identifier_,
     Identifier(String),
 }
 
-pub const TOKENS: [(Token, &str); 15] = [
+pub const TOKENS: [(Token, &str); 16] = [
     (Token::Println, "^println"),
     (Token::Let, "^let"),
 
@@ -44,6 +46,7 @@ pub const TOKENS: [(Token, &str); 15] = [
     (Token::BoolType, "^bool"),
 
     (Token::Number_, "^\\d+"),
+    (Token::String_, "^\"[^\"]+\""),
     (Token::Identifier_, "^[A-Za-z_]+"),
 ];
 
@@ -54,6 +57,7 @@ impl Token {
         match self {
             Number_ => {Number(token_value.to_string())},
             Identifier_ => {Identifier(token_value.to_string())},
+            String_ => String(token_value.to_string()),
             _ => self
         }
     }

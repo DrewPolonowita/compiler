@@ -22,22 +22,33 @@ fn main() {
     let parse_tree = ParseTree::parse(lexer);
     //println!("{:#?}", parse_tree);
 
-    let rust = compile(parse_tree);
+    let c = compile(parse_tree);
 
-    let rust = format!("fn main() {{{}}}", rust);
+    let filepath = format!("test_executables/{}", filename);
 
-    std::fs::write("output.rs", rust).unwrap();
+    let c = format!(
+        "#include <iostream>
 
-    Command::new("rustc")
-        .arg("output.rs")
-        .arg("-O") // optional optimization
-        .arg("-A")
-        .arg("warnings")
+        int main() {{
+            {}
+            return 0;
+        }}",
+        c
+    );
+
+    std::fs::write("file.cpp", c).unwrap();
+
+    let result = Command::new("g++")
+        .arg("file.cpp")
         .arg("-o")
-        .arg(format!("test_executables/{}.exe", filename).as_str())
-        .status()
-        .expect("failed to run rustc");
+        .arg(&filepath)
+        .output()
+        .expect("failed to run g++");
 
-    //std::fs::remove_file("output.rs").unwrap();
+    if !result.status.success() {
+        eprintln!("{}", String::from_utf8_lossy(&result.stderr));
+        return;
+    }
 
+    std::fs::remove_file("file.cpp").unwrap();
 }
