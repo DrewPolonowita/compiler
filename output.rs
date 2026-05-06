@@ -1,0 +1,1 @@
+fn main() {let mut test : i64 = 5;println!("{}", test);}

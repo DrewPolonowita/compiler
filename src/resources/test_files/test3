@@ -1,0 +1,6 @@
+let x = 10;
+let y = x*5;
+let y =x*10 - y;
+let x = y / 25;
+println(x);
+println(y);
