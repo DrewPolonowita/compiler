@@ -1,11 +1,10 @@
 use std::env;
 use std::process::Command;
-use crate::compiler::compiler::compile;
-use crate::parser::parser::ParseTree;
 
 mod lexer;
 mod parser;
 mod compiler;
+mod error;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -19,10 +18,39 @@ fn main() {
     let contents = std::fs::read_to_string(filepath).unwrap();
     let lexer = lexer::lexer::Lexer::new(contents);
 
-    let parse_tree = ParseTree::parse(lexer);
-    //println!("{:#?}", parse_tree);
+    let parse_tree = match crate::parser::parser::ParseTree::parse(lexer) {
+        Ok(tree) => tree,
+        Err(error) => {
+            eprintln!("{}", error);
+            std::process::exit(0);
+        },
+    };
 
-    let c = compile(parse_tree);
+    let c = crate::compiler::compiler::compile(parse_tree);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     let filepath = format!("test_executables/{}", filename);
 
@@ -51,4 +79,14 @@ fn main() {
     }
 
     std::fs::remove_file("file.cpp").unwrap();
+
+    let result = Command::new(format!("{}.exe", &filepath))
+        .output()
+        .expect("failed to run exe");
+
+    if !result.status.success() {
+        eprintln!("{}", String::from_utf8_lossy(&result.stderr));
+    } else {
+        println!("{}", String::from_utf8_lossy(&result.stdout));
+    }
 }

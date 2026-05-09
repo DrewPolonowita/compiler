@@ -1,0 +1,2 @@
+let str my_string = "Hello, world!";
+println(my_string);

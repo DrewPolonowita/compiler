@@ -1,89 +1,128 @@
 use regex::Regex;
+use crate::lexer::error::{get_error, LexerError};
 use crate::lexer::tokens::{Token, TOKENS};
 
 pub struct Lexer {
     program: String,
-    current_index: usize,
-    next_token: Option<Token>
+    current_index: usize
 }
-
-fn get_longest_matched_string(text : &str) -> (Option<Token>, usize) {
-    let mut longest_token: Option<Token> = None;
-    let mut longest_string_length: usize = 0;
-
-    for (mut token, pattern) in TOKENS {
-        let re = Regex::new(pattern).unwrap();
-
-        if let Some(matched_token) = re.find(text) {
-            let matched_token = matched_token.as_str();
-
-            longest_token = match longest_token {
-
-                Some(longest_token) => {
-                    if matched_token.len() > longest_string_length {
-                        longest_string_length = matched_token.len();
-                        token = token.remove___(matched_token);
-                        Some(token)
-                    } else {
-                        Some(longest_token)
-                    }
-                },
-                None => {
-                    longest_string_length = matched_token.len();
-                    token = token.remove___(matched_token);
-                    Some(token)
-                }
-            }
-        }
-    }
-
-    (longest_token, longest_string_length)
-}
-
 
 impl Lexer {
+    /// Creates a new instance of a lexer with some program to tokenize the input.
+    /// The input program is tokenized lazily by implementing iterator.
+    ///
+    /// # Arguments
+    ///
+    /// * `program` - The program to be tokenized
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let lexer = Lexer::new("let str my_string = \"Hello, world!\";");
+    /// assert_eq!(lexer.next(), Some(Ok(Token::Let)));
+    /// assert_eq!(lexer.next(), Some(Ok(Token::StringType)));
+    /// assert_eq!(lexer.next(), Some(Ok(Token::Identifier("my_string")));
+    /// assert_eq!(lexer.next(), Some(Ok(Token::Equals)));
+    /// assert_eq!(lexer.next(), Some(Ok(Token::String("Hello, world!")));
+    /// assert_eq!(lexer.next(), Some(Ok(Token::LineEnd));
+    /// ```
     pub fn new(program: String) -> Lexer {
-        let mut lexer = Self {
+        let lexer = Self {
             program,
-            current_index: 0usize,
-            next_token: None
+            current_index: 0usize
         };
-
-        lexer.next_token();
-
         lexer
     }
 
-    fn skip_whitespace(&mut self) {
+    /// Gets the number of whitespace chars from self.current_index to the next token.
+    /// This is used to calculate an effective index
+    fn get_no_whitespace_chars(&self) -> usize {
+        let mut whitespace = 0;
+        let program_bytes = self.program.as_bytes();
 
-        let re = Regex::new(r"^\s+").unwrap();
-        if let Some(matched_whitespace) = re.find(&self.program[self.current_index..]) {
-            self.current_index += matched_whitespace.end();
+        while self.current_index + whitespace < self.program.len() {
+            let b = program_bytes[self.current_index + whitespace];
+            if b == b' ' || b == b'\n' || b == b'\t' || b == b'\r' {
+                whitespace += 1;
+            } else {
+                break;
+            }
+        }
+        whitespace
+    }
+
+    /// Adds the number of whitespace chars to the current index to get the index of the next token
+    fn effective_index(&self) -> usize {
+        self.current_index + self.get_no_whitespace_chars()
+    }
+
+    /// Returns the longest token from the effective index; if an error is met by there not being a valid
+    /// next token then a LexerError is returned
+    fn get_longest_matched_string(&self) -> Result<(Token, usize), LexerError> {
+        let mut longest_token: Option<Token> = None;
+        let mut longest_string_length: usize = 0;
+
+        let text = &self.program[self.effective_index()..];
+
+        for (token, pattern) in TOKENS {
+            let re = Regex::new(pattern).unwrap();
+
+            if let Some(matched_token) = re.find(text) {
+                let matched_token = matched_token.as_str();
+
+                if matched_token.len() > longest_string_length {
+                    longest_string_length = matched_token.len();
+                    longest_token = Some(token.remove___(matched_token));
+                }
+            }
+        }
+
+        if let Some(longest_token) = longest_token {
+            Ok((longest_token, longest_string_length))
+        } else {
+            Err(get_error(&self.program, self.effective_index()))
         }
     }
 
-    fn next_token(&mut self) -> Option<Token> {
-        let old_token = self.next_token.take();
-
-        self.skip_whitespace();
-        let (token, length) = get_longest_matched_string(&self.program[self.current_index..]);
-
-        self.current_index += length;
-        self.next_token = token;
-
-        old_token
+    /// Returns the next token and increments the iterator to the next token
+    fn next_token(&mut self) -> Result<Token, LexerError> {
+        if self.effective_index() >= self.program.len() {
+            return Ok(Token::EOF);
+        }
+        let (token, length) = self.get_longest_matched_string()?;
+        self.current_index = self.effective_index() + length;
+        Ok(token)
     }
 
-    pub fn peek(&self) -> &Option<Token> {
-        return &self.next_token;
+    /// Returns the next token without incrementing the iterator to the next token
+    pub fn peek(&self) -> Option<Result<Token, LexerError>> {
+        if self.effective_index() >= self.program.len() {
+            return None;
+        }
+
+        match self.get_longest_matched_string() {
+            Ok((token, _)) => Some(Ok(token)),
+            Err(e) => Some(Err(e))
+        }
     }
 
-    pub fn is_empty(&self) -> bool { return matches!(self.next_token, None); }
+    /// Returns true if the iterator is at the end of the file
+    pub fn is_empty(&self) -> bool {
+        self.effective_index() >= self.program.len()
+    }
 }
 
+/// Iterator implementation for Lexer so that it works with loops easier
 impl Iterator for Lexer {
-    type Item = Token;
+    type Item = Result<Token, LexerError>;
     fn next(&mut self) -> Option<Self::Item> {
-        self.next_token()
+        let next_token = self.next_token();
+
+        // Token::EOF indicates the end of the file
+        if matches!(next_token, Ok(Token::EOF)) {
+            None
+        } else {
+            Some(next_token)
+        }
     }
 }

@@ -1,5 +1,5 @@
 use crate::lexer::tokens::Token;
-use crate::ParseTree;
+use crate::parser::parser::ParseTree;
 
 
 pub fn compile(tree: ParseTree) -> String {
@@ -39,7 +39,7 @@ fn arithmetic_to_string(token: &Token) -> String {
 
 fn print_to_string(tree: ParseTree) -> String {format!("std::cout << {} << std::endl", compile(tree)) }
 fn factor_to_string(tree: ParseTree) -> String {format!("({})", compile(tree)) }
-fn expression_to_string(trees: Vec<ParseTree>, operators: Vec<Token>) -> String {
+fn expression_to_string(trees: Vec<ParseTree>, operators: Vec<ParseTree>) -> String {
     let mut trees = trees.into_iter();
     let mut operators = operators.into_iter();
 
@@ -50,7 +50,7 @@ fn expression_to_string(trees: Vec<ParseTree>, operators: Vec<Token>) -> String 
     while let Some(tree) = trees.next() {
         let Some(op) = operators.next() else { todo!() };
 
-        final_string = format!("{} {} {}", final_string, arithmetic_to_string(&op), compile(tree))
+        final_string = format!("{} {} {}", final_string, compile(op), compile(tree))
     }
     final_string
 }

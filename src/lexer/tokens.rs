@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub enum Token {
     // Keywords
@@ -26,6 +26,8 @@ pub enum Token {
     String(String),
     Identifier_,
     Identifier(String),
+
+    EOF
 }
 
 pub const TOKENS: [(Token, &str); 16] = [
@@ -47,7 +49,7 @@ pub const TOKENS: [(Token, &str); 16] = [
 
     (Token::Number_, "^\\d+"),
     (Token::String_, "^\"[^\"]+\""),
-    (Token::Identifier_, "^[A-Za-z_]+"),
+    (Token::Identifier_, "^[A-Za-z_]*"),
 ];
 
 impl Token {

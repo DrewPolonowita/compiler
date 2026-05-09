@@ -1,3 +1,3 @@
 pub mod lexer;
 pub mod tokens;
-mod error;
+pub mod error;
