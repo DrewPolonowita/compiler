@@ -1,2 +1,2 @@
-let str my_string = "Hello, world!";
-println(my_string);
+let int x = (5)*5;
+println(x + 5);

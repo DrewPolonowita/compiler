@@ -110,6 +110,15 @@ impl Lexer {
     pub fn is_empty(&self) -> bool {
         self.effective_index() >= self.program.len()
     }
+
+    /// Returns the program string
+    pub fn get_program(&self) -> &str {
+        &self.program
+    }
+
+    pub fn get_current_index(&self) -> usize {
+        self.current_index
+    }
 }
 
 /// Iterator implementation for Lexer so that it works with loops easier

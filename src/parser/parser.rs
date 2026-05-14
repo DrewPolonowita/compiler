@@ -1,7 +1,8 @@
 use crate::error::error::CompilerError;
-use crate::lexer::error::LexerError;
+use crate::parser::error::{ErrorType, ParserError};
 use crate::lexer::tokens::Token;
 use crate::lexer::lexer::Lexer;
+use crate::parser::error::ErrorType::ArithmeticExpectedError;
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -10,8 +11,8 @@ pub enum ParseTree {
     Statements(Vec<ParseTree>),
     Statement(Box<ParseTree>),
     Assignment(Box<ParseTree>, Box<ParseTree>, Box<ParseTree>),
-    Expression(Vec<ParseTree>, Vec<ParseTree>),
-    Term(Vec<ParseTree>, Vec<ParseTree>),
+    Expression(Box<ParseTree>, Token, Box<ParseTree>),
+    Term(Box<ParseTree>, Token, Box<ParseTree>),
     Factor(Box<ParseTree>),
     Println(Box<ParseTree>),
 
@@ -43,6 +44,8 @@ fn statements(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
             if !lexer.is_empty() {
                 all_statements.push(statement(lexer)?);
             }
+        } else {
+            return Ok(ParseTree::Statements(all_statements));
         }
     }
 
@@ -114,46 +117,63 @@ fn println(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
 }
 
 fn expression(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let mut all_terms = Vec::from([term(lexer)?]);
-    let mut all_operands = Vec::new();
+    let mut expression = term(lexer)?;
+    use Token::*;
 
     while let Some(next_token) = lexer.peek() {
         let next_token = next_token?;
-        if matches!(next_token, Token::Plus) || matches!(next_token, Token::Subtract) {
 
-            all_operands.push(arithmetic(lexer)?);
-            all_terms.push(term(lexer)?);
-        } else {
-            return Ok(ParseTree::Expression(all_terms, all_operands));
+        expression = match next_token {
+            Times | Divide => {
+                lexer.next();
+                ParseTree::Expression(Box::new(expression), next_token, Box::new(term(lexer)?))
+            },
+            _ => break
+        };
+    }
+
+    if let Some(next_token) = lexer.peek() {
+        let next_token = next_token?;
+
+        match next_token {
+            Identifier(_) | Number(_) => {
+                Err(ParserError::new(
+                    ArithmeticExpectedError, lexer,
+                ))?
+            },
+            _ => {},
         }
     }
 
-    Ok(ParseTree::Expression(all_terms, Vec::new()))
+    Ok(expression)
 }
 
 fn term(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let mut all_factors = Vec::from([factor(lexer)?]);
-    let mut all_operands = Vec::new();
+    let mut term = factor(lexer)?;
 
     while let Some(next_token) = lexer.peek() {
         let next_token = next_token?;
+        use Token::*;
 
-        if matches!(next_token, Token::Times) || matches!(next_token, Token::Divide) {
-            all_operands.push(arithmetic(lexer)?);
-            all_factors.push(factor(lexer)?);
-        } else {
-            return Ok(ParseTree::Term(all_factors, all_operands));
-        }
+        term = match next_token {
+            Plus | Subtract => {
+                lexer.next();
+                ParseTree::Expression(Box::new(term), next_token, Box::new(factor(lexer)?))
+            },
+            _ => {
+                break
+            }
+        };
     }
 
-    Ok(ParseTree::Term(all_factors, Vec::new()))
+    Ok(term)
 }
 
 fn factor(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
     let Some(next_token) = lexer.next() else {todo!()};
     let next_token = next_token?;
-
     use Token::*;
+
     match next_token {
         Number(_) => Ok(ParseTree::Number(next_token)),
         String(_) => Ok(ParseTree::String(next_token)),
@@ -165,24 +185,12 @@ fn factor(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
             let Some(next_token) = lexer.next() else {todo!()};
             let next_token = next_token?;
 
-            if !matches!(next_token, Token::RParen) {todo!()};
+            if !matches!(next_token, RParen) {
+                todo!()
+            };
 
             expr
         },
-        _ => todo!()
-    }
-}
-
-fn arithmetic(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let Some(next_token) = lexer.next() else {todo!()};
-    let next_token = next_token?;
-
-    use Token::*;
-    match next_token {
-        Plus => Ok(ParseTree::Arithmetic(next_token)),
-        Subtract => Ok(ParseTree::Arithmetic(next_token)),
-        Times => Ok(ParseTree::Arithmetic(next_token)),
-        Divide => Ok(ParseTree::Arithmetic(next_token)),
         _ => todo!()
     }
 }

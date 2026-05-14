@@ -9,7 +9,13 @@ pub enum CompilerError {
 
 impl From<LexerError> for CompilerError {
     fn from(err: LexerError) -> Self {
-        CompilerError::LexerError(err)
+        Self::LexerError(err)
+    }
+}
+
+impl From<ParserError> for CompilerError {
+    fn from(err: ParserError) -> Self {
+        Self::ParserError(err)
     }
 }
 

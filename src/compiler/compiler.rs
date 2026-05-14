@@ -10,8 +10,8 @@ pub fn compile(tree: ParseTree) -> String {
         Statements(stmts) => statements_to_string(stmts),
         Statement(stmt) => statement_to_string(*stmt),
         Assignment(id, typ, expr) => assignment_to_string(*id, *typ, *expr),
-        Expression(vec_tree, vec_token) => expression_to_string(vec_tree, vec_token),
-        Term(vec_tree, vec_token) => expression_to_string(vec_tree, vec_token),
+        Expression(l_tree, token, r_tree) => expression_to_string(*l_tree, token, *r_tree),
+        Term(l_tree, token, r_tree) => expression_to_string(*l_tree, token, *r_tree),
         Factor(tree) => factor_to_string(*tree),
         Println(tree) => print_to_string(*tree),
 
@@ -39,21 +39,10 @@ fn arithmetic_to_string(token: &Token) -> String {
 
 fn print_to_string(tree: ParseTree) -> String {format!("std::cout << {} << std::endl", compile(tree)) }
 fn factor_to_string(tree: ParseTree) -> String {format!("({})", compile(tree)) }
-fn expression_to_string(trees: Vec<ParseTree>, operators: Vec<ParseTree>) -> String {
-    let mut trees = trees.into_iter();
-    let mut operators = operators.into_iter();
-
-    let Some(tree) = trees.next() else { todo!() };
-
-    let mut final_string = String::from(compile(tree));
-
-    while let Some(tree) = trees.next() {
-        let Some(op) = operators.next() else { todo!() };
-
-        final_string = format!("{} {} {}", final_string, compile(op), compile(tree))
-    }
-    final_string
+fn expression_to_string(l_tree: ParseTree, operator: Token, r_tree: ParseTree) -> String {
+    format!("{} {} {}", compile(l_tree), token_to_string(operator), compile(r_tree))
 }
+
 fn assignment_to_string(id: ParseTree, expr_type: ParseTree, expr: ParseTree) -> String {
     format!("{} {} = {}", compile(expr_type), compile(id), compile(expr))
 }
@@ -78,7 +67,14 @@ fn token_to_string(token: Token) -> String {
         IntType => "int",
         StringType => "std::string",
         BoolType => "bool",
-        _ => todo!()
+
+        Times => "*",
+        Plus => "+",
+        Subtract => "-",
+        Divide => "/",
+
+
+        _ => unreachable!("THIS IS A BUG")
     }.to_string()
 }
 fn str_to_string(str: &str) -> String {
