@@ -1,2 +1,2 @@
-let int x = (5)*5;
-println(x + 5);
+let int y = 5;
+let int x 5;

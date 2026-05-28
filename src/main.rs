@@ -5,6 +5,8 @@ mod lexer;
 mod parser;
 mod compiler;
 mod error;
+mod interfaces;
+mod semantics;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -25,6 +27,8 @@ fn main() {
             std::process::exit(0);
         },
     };
+    
+    //println!("{:#?}", parse_tree);
 
     let c = crate::compiler::compiler::compile(parse_tree);
 
@@ -78,7 +82,7 @@ fn main() {
         return;
     }
 
-    std::fs::remove_file("file.cpp").unwrap();
+    //std::fs::remove_file("file.cpp").unwrap();
 
     let result = Command::new(format!("{}.exe", &filepath))
         .output()
