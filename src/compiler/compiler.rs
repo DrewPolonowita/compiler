@@ -40,7 +40,7 @@ fn arithmetic_to_string(token: &Token) -> String {
 fn print_to_string(tree: ParseTree) -> String {format!("std::cout << {} << std::endl", compile(tree)) }
 fn factor_to_string(tree: ParseTree) -> String {format!("({})", compile(tree)) }
 fn expression_to_string(l_tree: ParseTree, operator: Token, r_tree: ParseTree) -> String {
-    format!("{} {} {}", compile(l_tree), token_to_string(operator), compile(r_tree))
+    format!("({} {} {})", compile(l_tree), token_to_string(operator), compile(r_tree))
 }
 
 fn assignment_to_string(id: ParseTree, expr_type: ParseTree, expr: ParseTree) -> String {
