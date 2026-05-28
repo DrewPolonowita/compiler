@@ -1,7 +1,9 @@
 use crate::error::error::CompilerError;
-use crate::parser::error::{ErrorType, ParserError};
+use crate::interfaces::lexer_interface::{consume_token, consume_type, is_empty, next, peek, peek_check};
+use crate::parser::error::ParserError;
 use crate::lexer::tokens::Token;
 use crate::lexer::lexer::Lexer;
+use crate::lexer::token_type::TokenType;
 use crate::parser::error::ErrorType::ArithmeticExpectedError;
 
 #[derive(Debug)]
@@ -37,104 +39,68 @@ fn program(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
 fn statements(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
     let mut all_statements = Vec::from([statement(lexer)?]);
 
-    while let Some(next_token) = lexer.peek() {
-        let next_token = next_token?;
+    while let Some(next_token) = peek(lexer)? {
         if matches!(next_token, Token::LineEnd) {
-            lexer.next();
-            if !lexer.is_empty() {
+            next(lexer)?;
+
+            if !is_empty(lexer) {
                 all_statements.push(statement(lexer)?);
             }
         } else {
             return Ok(ParseTree::Statements(all_statements));
         }
     }
-
     Ok(ParseTree::Statements(all_statements))
 }
 
 fn statement(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let Some(next_token) = lexer.peek() else {
-        todo!();
-    };
-    let next_token = next_token?;
+    let next_token = peek_check(lexer, &TokenType::Expression)?;
 
     if matches!(next_token, Token::Let) {
         Ok(ParseTree::Statement(Box::new(assignment(lexer)?)))
     } else if matches!(next_token, Token::Println) {
         Ok(ParseTree::Statement(Box::new(println(lexer)?)))
     } else {
-        todo!();
+        Ok(ParseTree::Statement(Box::new(expression(lexer)?)))
     }
 }
 
 fn assignment(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let Some(next_token) = lexer.next() else {todo!()};
-    let next_token = next_token?;
-    if !matches!(next_token, Token::Let) {todo!()};
-
-    let typ = argtype(lexer)?;
-
-    let Some(next_token) = lexer.next() else {todo!()};
-    let next_token = next_token?;
-    if !matches!(next_token, Token::Identifier(_)) {todo!()};
-
+    let _ = consume_token(lexer, &Token::Let)?;
+    let typ = arg_type(lexer)?;
+    let next_token = consume_type(lexer, &TokenType::Identifier)?;
     let id = next_token;
-
-    let Some(next_token) = lexer.next() else {todo!()};
-    let next_token = next_token?;
-    if !matches!(next_token, Token::Equals) {todo!()};
-
+    let _ = consume_token(lexer, &Token::Equals)?;
     Ok(ParseTree::Assignment(Box::new(ParseTree::Identifier(id)), Box::new(typ), Box::new(expression(lexer)?)))
-
 }
 
-fn argtype(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let Some(next_token) = lexer.next() else {todo!()};
-    let next_token = next_token?;
-
-    use Token::*;
-    match next_token {
-        IntType | StringType | BoolType => Ok(ParseTree::Type(next_token)),
-        _ => todo!()
-    }
+fn arg_type(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
+    let next_token = consume_type(lexer, &TokenType::Type)?;
+    Ok(ParseTree::Type(next_token))
 }
 fn println(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let Some(next_token) = lexer.next() else {todo!()};
-    let next_token = next_token?;
-    if !matches!(next_token, Token::Println) {todo!()};
-
-    let Some(next_token) = lexer.next() else {todo!()};
-    let next_token = next_token?;
-    if !matches!(next_token, Token::LParen) {todo!()};
-
+    let _ = consume_token(lexer, &Token::Println)?;
+    let _ = consume_token(lexer, &Token::LParen)?;
     let tree = ParseTree::Println(Box::new(expression(lexer)?));
-
-    let Some(next_token) = lexer.next() else {todo!()};
-    let next_token = next_token?;
-    if !matches!(next_token, Token::RParen) {todo!()};
-
-    Ok( tree)
+    let _ = consume_token(lexer, &Token::RParen)?;
+    Ok(tree)
 }
 
 fn expression(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
     let mut expression = term(lexer)?;
     use Token::*;
 
-    while let Some(next_token) = lexer.peek() {
-        let next_token = next_token?;
-
+    while let Some(next_token) = peek(lexer)? {
         expression = match next_token {
-            Times | Divide => {
-                lexer.next();
+            Plus | Subtract => {
+                next(lexer)?;
                 ParseTree::Expression(Box::new(expression), next_token, Box::new(term(lexer)?))
             },
             _ => break
         };
     }
 
-    if let Some(next_token) = lexer.peek() {
-        let next_token = next_token?;
-
+    if let Some(next_token) = peek(lexer)? {
         match next_token {
             Identifier(_) | Number(_) => {
                 Err(ParserError::new(
@@ -150,19 +116,15 @@ fn expression(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
 
 fn term(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
     let mut term = factor(lexer)?;
+    use Token::*;
 
-    while let Some(next_token) = lexer.peek() {
-        let next_token = next_token?;
-        use Token::*;
-
+    while let Some(next_token) = peek(lexer)? {
         term = match next_token {
-            Plus | Subtract => {
-                lexer.next();
+            Times | Divide => {
+                next(lexer)?;
                 ParseTree::Expression(Box::new(term), next_token, Box::new(factor(lexer)?))
             },
-            _ => {
-                break
-            }
+            _ => break
         };
     }
 
@@ -170,8 +132,7 @@ fn term(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
 }
 
 fn factor(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let Some(next_token) = lexer.next() else {todo!()};
-    let next_token = next_token?;
+    let next_token = consume_type(lexer, &TokenType::Expression)?;
     use Token::*;
 
     match next_token {
@@ -179,18 +140,10 @@ fn factor(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
         String(_) => Ok(ParseTree::String(next_token)),
         Identifier(_) => Ok(ParseTree::Identifier(next_token)),
         LParen => {
-            lexer.next();
             let expr = expression(lexer);
-
-            let Some(next_token) = lexer.next() else {todo!()};
-            let next_token = next_token?;
-
-            if !matches!(next_token, RParen) {
-                todo!()
-            };
-
+            let _ = consume_token(lexer, &RParen)?;
             expr
         },
-        _ => todo!()
+        _ => unreachable!()
     }
 }

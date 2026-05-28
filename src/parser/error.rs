@@ -1,6 +1,8 @@
 use std::fmt::Display;
 use crate::error::create_error_diagram::{create_error_diagram, get_line, get_next_line};
 use crate::lexer::lexer::Lexer;
+use crate::lexer::token_type::TokenType;
+use crate::lexer::tokens::Token;
 
 pub struct ParserError {
     error_type: ErrorType,
@@ -10,7 +12,21 @@ pub struct ParserError {
 
 pub enum ErrorType {
     ArithmeticExpectedError,
-    UnmatchedParenthesis
+    UnmatchedParenthesis,
+    ExpectedType(
+        TokenType, //expected
+    ),
+    UnexpectedType(
+        TokenType, //expected
+        Token, //got
+    ),
+    ExpectedToken(
+        Token, //expected
+    ),
+    UnexpectedToken(
+        Token, //expected
+        Token, //got
+    )
 }
 
 /// ErrorType Display implementations. Converts the enum name to a String
@@ -19,9 +35,26 @@ impl Display for ErrorType {
         use ErrorType::*;
 
         let (str, code) = match self {
-            ArithmeticExpectedError => ("Expected arithmetic operator", "e35013"),
-            UnmatchedParenthesis => ("Expected ')'", "e35013"),
+            ArithmeticExpectedError => ("Expected arithmetic operator".to_string(), "e35013"),
+            UnmatchedParenthesis => ("Expected ')'".to_string(), "e35014"),
+            ExpectedType(expected) => {
+                let string = format!("expected {}", expected);
+                (string, "e35015")
+            },
+            UnexpectedType(expected, got) => {
+                let string = format!("expected {}, found \"{}\"", expected, got);
+                (string, "e35015")
+            },
+            ExpectedToken(expected) => {
+                let string = format!("expected {}", expected);
+                (string, "e35015")
+            },
+            UnexpectedToken(expected, got) => {
+                let string = format!("expected {}, found \"{}\"", expected, got);
+                (string, "e35015")
+            },
         };
+
         let begin = format!("error[{}]:", code);
         let _ = f.write_str(&format!("{} {}", begin, str));
 
