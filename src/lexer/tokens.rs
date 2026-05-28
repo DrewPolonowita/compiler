@@ -1,4 +1,7 @@
-#[derive(Debug, Clone)]
+use std::fmt::Display;
+use crate::lexer::tokens::Token::{LParen, RParen};
+
+#[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
 pub enum Token {
     // Keywords
@@ -9,6 +12,9 @@ pub enum Token {
     LineEnd,
     LParen,
     RParen,
+    LCurly,
+    RCurly,
+
     Equals,
     Plus,
     Subtract,
@@ -30,13 +36,16 @@ pub enum Token {
     EOF
 }
 
-pub const TOKENS: [(Token, &str); 16] = [
+pub const TOKENS: [(Token, &str); 18] = [
     (Token::Println, "^println"),
     (Token::Let, "^let"),
 
     (Token::LineEnd, "^;"),
     (Token::LParen, "^\\("),
     (Token::RParen, "^\\)"),
+    (Token::LCurly, "^\\{"),
+    (Token::RCurly, "^\\}"),
+
     (Token::Equals, "^="),
     (Token::Plus, "^\\+"),
     (Token::Subtract, "^-"),
@@ -62,5 +71,42 @@ impl Token {
             String_ => String(token_value.to_string()),
             _ => self
         }
+    }
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use Token::*;
+        let str = match self {
+            Println => "println",
+            Let => "let",
+            LineEnd => ";",
+
+            Equals => "=",
+            LParen => "(",
+            RParen => ")",
+            LCurly => "{",
+            RCurly => "}",
+
+            Plus => "+",
+            Subtract => "-",
+            Times => "*",
+            Divide => "/",
+            
+            IntType => "int",
+            StringType => "string",
+            BoolType => "bool",
+
+            Number_ => "number",
+            Number(num) => num.as_str(),
+            String_ => "string",
+            String(str) => str.as_str(),
+            Identifier_ => "identifier",
+            Identifier(id) => id.as_str(),
+
+            EOF => "EOF"
+        };
+
+        f.write_str(str)
     }
 }

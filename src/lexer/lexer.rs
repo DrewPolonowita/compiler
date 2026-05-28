@@ -4,7 +4,8 @@ use crate::lexer::tokens::{Token, TOKENS};
 
 pub struct Lexer {
     program: String,
-    current_index: usize
+    current_index: usize,
+    prev_index: usize
 }
 
 impl Lexer {
@@ -29,7 +30,8 @@ impl Lexer {
     pub fn new(program: String) -> Lexer {
         let lexer = Self {
             program,
-            current_index: 0usize
+            current_index: 0usize,
+            prev_index: 0usize
         };
         lexer
     }
@@ -86,6 +88,8 @@ impl Lexer {
 
     /// Returns the next token and increments the iterator to the next token
     fn next_token(&mut self) -> Result<Token, LexerError> {
+        self.prev_index = self.current_index;
+
         if self.effective_index() >= self.program.len() {
             return Ok(Token::EOF);
         }
@@ -116,8 +120,16 @@ impl Lexer {
         &self.program
     }
 
+    /// Returns the current index
     pub fn get_current_index(&self) -> usize {
-        self.current_index
+        self.effective_index()
+    }
+
+    /// Returns to the previous index. Only works once
+    /// Does nothing if a step back has been done and next_token hasn't been called
+    /// Does nothing if the first token hasn't been read.
+    pub fn step_back(&mut self) {
+        self.current_index = self.prev_index;
     }
 }
 
