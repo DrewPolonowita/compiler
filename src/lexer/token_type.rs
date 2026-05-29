@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use crate::lexer::token_type::TokenType::{Expression, LParen, RParen};
 use crate::lexer::tokens::Token;
-use crate::lexer::tokens::Token::{Equals, LineEnd, RCurly};
+use crate::lexer::tokens::Token::{Comma, Equals, LineEnd, RCurly};
 
 #[derive(Clone, PartialOrd, PartialEq)]
 #[allow(dead_code)]
@@ -10,6 +10,9 @@ pub enum TokenType {
     // Keywords
     Println,
     Let,
+
+    Separator,
+    Colon,
 
     // Character tokens
     LParen,
@@ -23,6 +26,7 @@ pub enum TokenType {
     Type,
     Identifier,
     Expression,
+    Keyword,
 
     EOF
 }
@@ -37,11 +41,15 @@ impl Display for TokenType {
             TokenType::LParen => "(",
             TokenType::RParen => ")",
 
+            TokenType::Separator => ",",
+            TokenType::Colon => ":",
+
 
             TokenType::Operator => "operator",
             TokenType::Type => "type",
             TokenType::Expression => "expression",
             TokenType::Identifier => "identifier",
+            TokenType::Keyword => "keyword",
             TokenType::EOF => "eof",
         };
 
@@ -54,9 +62,12 @@ impl From<&Token> for TokenType {
         match token {
             LineEnd => TokenType::LineEnd,
             Equals => TokenType::Equals,
+            Comma => TokenType::Separator,
+            Colon => TokenType::Colon,
 
             Println => TokenType::Expression,
             Let => TokenType::Expression,
+            Fn => TokenType::Expression,
 
             Plus => TokenType::Operator,
             Subtract => TokenType::Operator,
@@ -87,18 +98,15 @@ impl From<&Token> for TokenType {
 
 impl TokenType {
     pub fn is_member(&self, other: &TokenType) -> bool {
-        if self == other {
-            return true;
-        }
         use TokenType::*;
         match self {
-            LParen | RParen | Identifier | Let | Println => {
+            Identifier => {
                 match other {
                     Expression => true,
-                    _ => false
+                    _ => self == other
                 }
-            },
-            _ => false
+            }
+            _ => self == other,
         }
     }
 }

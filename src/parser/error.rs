@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use crate::error::create_error_diagram::{create_error_diagram, get_line, get_next_line};
+use crate::error::create_error_diagram::{create_error_diagram, get_line, get_next_line, get_prev_line};
 use crate::lexer::lexer::Lexer;
 use crate::lexer::token_type::TokenType;
 use crate::lexer::tokens::Token;
@@ -77,8 +77,10 @@ impl Display for ParserError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 
         let (line, line_no, column_no) = get_line(self.program.as_str(), self.index);
+
+        let prev_line = get_prev_line(self.program.as_str(), self.index as isize - column_no as isize - 1);
         let next_line = get_next_line(self.program.as_str(), self.index + line.len() + 1 - column_no);
-        let diagram = create_error_diagram(line, next_line, &line_no, &column_no);
+        let diagram = create_error_diagram(line, next_line, prev_line, &line_no, &column_no);
 
         let info = "For more information about this error try (NOT YET IMPLEMENTED)!";
 

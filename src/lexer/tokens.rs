@@ -7,9 +7,13 @@ pub enum Token {
     // Keywords
     Println,
     Let,
+    Fn,
 
     // Character tokens
     LineEnd,
+    Colon,
+    Comma,
+
     LParen,
     RParen,
     LCurly,
@@ -36,11 +40,14 @@ pub enum Token {
     EOF
 }
 
-pub const TOKENS: [(Token, &str); 18] = [
+pub const TOKENS: [(Token, &str); 21] = [
     (Token::Println, "^println"),
     (Token::Let, "^let"),
+    (Token::Fn, "^fn"),
 
     (Token::LineEnd, "^;"),
+    (Token::Colon, "^:"),
+    (Token::Comma, "^,"),
     (Token::LParen, "^\\("),
     (Token::RParen, "^\\)"),
     (Token::LCurly, "^\\{"),
@@ -80,7 +87,11 @@ impl Display for Token {
         let str = match self {
             Println => "println",
             Let => "let",
+            Fn => "fn",
+
             LineEnd => ";",
+            Comma => ",",
+            Colon => ":",
 
             Equals => "=",
             LParen => "(",

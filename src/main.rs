@@ -27,12 +27,10 @@ fn main() {
             std::process::exit(0);
         },
     };
-    
-    //println!("{:#?}", parse_tree);
 
-    let c = crate::compiler::compiler::compile(parse_tree);
+    println!("{:#?}", parse_tree);
 
-
+    //let c = crate::compiler::compiler::compile(parse_tree);
 
 
 
@@ -56,41 +54,43 @@ fn main() {
 
 
 
-    let filepath = format!("test_executables/{}", filename);
 
-    let c = format!(
-        "#include <iostream>
-
-        int main() {{
-            {}
-            return 0;
-        }}",
-        c
-    );
-
-    std::fs::write("file.cpp", c).unwrap();
-
-    let result = Command::new("g++")
-        .arg("file.cpp")
-        .arg("-o")
-        .arg(&filepath)
-        .output()
-        .expect("failed to run g++");
-
-    if !result.status.success() {
-        eprintln!("{}", String::from_utf8_lossy(&result.stderr));
-        return;
-    }
-
-    //std::fs::remove_file("file.cpp").unwrap();
-
-    let result = Command::new(format!("{}.exe", &filepath))
-        .output()
-        .expect("failed to run exe");
-
-    if !result.status.success() {
-        eprintln!("{}", String::from_utf8_lossy(&result.stderr));
-    } else {
-        println!("{}", String::from_utf8_lossy(&result.stdout));
-    }
+    //
+    // let filepath = format!("test_executables/{}", filename);
+    //
+    // let c = format!(
+    //     "#include <iostream>
+    //
+    //     int main() {{
+    //         {}
+    //         return 0;
+    //     }}",
+    //     c
+    // );
+    //
+    // std::fs::write("file.cpp", c).unwrap();
+    //
+    // let result = Command::new("g++")
+    //     .arg("file.cpp")
+    //     .arg("-o")
+    //     .arg(&filepath)
+    //     .output()
+    //     .expect("failed to run g++");
+    //
+    // if !result.status.success() {
+    //     eprintln!("{}", String::from_utf8_lossy(&result.stderr));
+    //     return;
+    // }
+    //
+    // //std::fs::remove_file("file.cpp").unwrap();
+    //
+    // let result = Command::new(format!("{}.exe", &filepath))
+    //     .output()
+    //     .expect("failed to run exe");
+    //
+    // if !result.status.success() {
+    //     eprintln!("{}", String::from_utf8_lossy(&result.stderr));
+    // } else {
+    //     println!("{}", String::from_utf8_lossy(&result.stdout));
+    // }
 }

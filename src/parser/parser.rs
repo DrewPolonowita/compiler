@@ -1,5 +1,5 @@
 use crate::error::error::CompilerError;
-use crate::interfaces::lexer_interface::{consume_token, consume_type, is_empty, next, peek, peek_check};
+use crate::interfaces::lexer_interface::{consume_token, consume_type, is_empty, is_peek_match_token, is_peek_match_type, next, peek, peek_check};
 use crate::parser::error::ParserError;
 use crate::lexer::tokens::Token;
 use crate::lexer::lexer::Lexer;
@@ -17,6 +17,9 @@ pub enum ParseTree {
     Term(Box<ParseTree>, Token, Box<ParseTree>),
     Factor(Box<ParseTree>),
     Println(Box<ParseTree>),
+
+    Closure(Box<ParseTree>),
+    Function(Token, Box<ParseTree>),
 
     Type(Token),
 
@@ -43,10 +46,16 @@ fn statements(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
         if matches!(next_token, Token::LineEnd) {
             next(lexer)?;
 
-            if !is_empty(lexer) {
+            if !is_empty(lexer) & !is_peek_match_token(lexer, &Token::RCurly)? {
                 all_statements.push(statement(lexer)?);
             }
         } else {
+            if !is_empty(lexer) {
+                if !is_peek_match_token(lexer, &Token::LineEnd)? & !is_peek_match_token(lexer, &Token::RCurly)? {
+                    consume_token(lexer, &Token::LineEnd)?;
+                };
+            }
+
             return Ok(ParseTree::Statements(all_statements));
         }
     }
@@ -60,9 +69,30 @@ fn statement(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
         Ok(ParseTree::Statement(Box::new(assignment(lexer)?)))
     } else if matches!(next_token, Token::Println) {
         Ok(ParseTree::Statement(Box::new(println(lexer)?)))
+    } else if matches!(next_token, Token::LCurly) {
+        Ok(ParseTree::Statement(Box::new(closure(lexer)?)))
+    } else if matches!(next_token, Token::Fn) {
+        Ok(ParseTree::Statement(Box::new(function(lexer)?)))
     } else {
-        Ok(ParseTree::Statement(Box::new(expression(lexer)?)))
+        Ok(ParseTree::Statement(Box::new(expres sion(lexer)?)))
     }
+}
+
+fn function(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
+    let _ = consume_token(lexer, &Token::Fn)?;
+    let function_name = consume_type(lexer, &TokenType::Identifier)?;
+    let _ = consume_token(lexer, &Token::LParen)?;
+    let _ = consume_token(lexer, &Token::RParen)?;
+    let stmts = closure(lexer)?;
+    Ok(ParseTree::Function(function_name, Box::new(stmts)))
+}
+
+fn closure(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
+    let _ = consume_token(lexer, &Token::LCurly)?;
+    let stmts = statements(lexer)?;
+    let _ = consume_token(lexer, &Token::RCurly)?;
+
+    Ok(stmts)
 }
 
 fn assignment(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
@@ -100,15 +130,8 @@ fn expression(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
         };
     }
 
-    if let Some(next_token) = peek(lexer)? {
-        match next_token {
-            Identifier(_) | Number(_) => {
-                Err(ParserError::new(
-                    ArithmeticExpectedError, lexer,
-                ))?
-            },
-            _ => {},
-        }
+    if is_peek_match_type(lexer, &TokenType::Expression)? {
+        let _ = peek_check(lexer, &TokenType::Operator)?;
     }
 
     Ok(expression)

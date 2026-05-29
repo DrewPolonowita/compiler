@@ -55,7 +55,7 @@ impl Display for LexerError {
 
         let (line, line_no, column_no) = get_line(self.program.as_str(), self.index);
         let next_line = get_next_line(self.program.as_str(), self.index + line.len() + 1 - column_no);
-        let diagram = create_error_diagram(line, next_line, &line_no, &column_no);
+        let diagram = create_error_diagram(line, next_line, None, &line_no, &column_no);
 
         let info = "For more information about this error try (NOT YET IMPLEMENTED)!";
 
