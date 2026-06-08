@@ -8,11 +8,16 @@ pub enum Token {
     Println,
     Let,
     Fn,
+    If,
+    Else,
+    While,
+    For,
 
     // Character tokens
     LineEnd,
     Colon,
     Comma,
+    Arrow,
 
     LParen,
     RParen,
@@ -24,6 +29,9 @@ pub enum Token {
     Subtract,
     Times,
     Divide,
+    Not,
+    And,
+    Or,
 
     // Types
     IntType,
@@ -40,14 +48,19 @@ pub enum Token {
     EOF
 }
 
-pub const TOKENS: [(Token, &str); 21] = [
+pub const TOKENS: [(Token, &str); 29] = [
     (Token::Println, "^println"),
     (Token::Let, "^let"),
     (Token::Fn, "^fn"),
+    (Token::If, "^if"),
+    (Token::Else, "^else"),
+    (Token::While, "^while"),
+    (Token::For, "^for"),
 
     (Token::LineEnd, "^;"),
     (Token::Colon, "^:"),
     (Token::Comma, "^,"),
+    (Token::Arrow, "^->"),
     (Token::LParen, "^\\("),
     (Token::RParen, "^\\)"),
     (Token::LCurly, "^\\{"),
@@ -58,6 +71,9 @@ pub const TOKENS: [(Token, &str); 21] = [
     (Token::Subtract, "^-"),
     (Token::Times, "^\\*"),
     (Token::Divide, "^/"),
+    (Token::Not, "^not"),
+    (Token::And, "^and"),
+    (Token::Or, "^or"),
 
     (Token::IntType, "^int"),
     (Token::StringType, "^str"),
@@ -88,10 +104,15 @@ impl Display for Token {
             Println => "println",
             Let => "let",
             Fn => "fn",
+            If => "if",
+            Else => "else",
+            For => "for",
+            While => "while",
 
             LineEnd => ";",
             Comma => ",",
             Colon => ":",
+            Arrow => "->",
 
             Equals => "=",
             LParen => "(",
@@ -103,7 +124,10 @@ impl Display for Token {
             Subtract => "-",
             Times => "*",
             Divide => "/",
-            
+            Not => "not",
+            And => "and",
+            Or => "or",
+
             IntType => "int",
             StringType => "string",
             BoolType => "bool",

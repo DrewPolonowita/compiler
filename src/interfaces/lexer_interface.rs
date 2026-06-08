@@ -191,6 +191,23 @@ pub fn is_peek_match_token(lexer: &mut Lexer, expected_token: &Token) -> Result<
     }
 }
 
+pub fn is_peek_in(lexer: &mut Lexer, expected_tokens: &[Token]) -> Result<bool, CompilerError> { //
+    match peek(lexer)? {
+        Some(token) => {
+            for expected_token in expected_tokens {
+                if token == *expected_token {
+                    return Ok(true)
+                }
+            }
+
+            Ok(false)
+        },
+        None => {
+            Ok(false)
+        },
+    }
+}
+
 // Maps an expected token type into an error when there is no more tokens
 fn map_token_type_to_error(lexer: &mut Lexer, token_type: &TokenType) -> Result<(), CompilerError> {
     let parser_error = ParserError::new(

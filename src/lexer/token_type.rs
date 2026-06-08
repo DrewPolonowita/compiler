@@ -7,12 +7,9 @@ use crate::lexer::tokens::Token::{Comma, Equals, LineEnd, RCurly};
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum TokenType {
-    // Keywords
-    Println,
-    Let,
-
     Separator,
     Colon,
+    Arrow,
 
     // Character tokens
     LParen,
@@ -34,8 +31,8 @@ pub enum TokenType {
 impl Display for TokenType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let str = match self {
-            TokenType::Println => "println",
-            TokenType::Let => "let",
+            TokenType::Keyword => "keyword",
+
             TokenType::LineEnd => ";",
             TokenType::Equals => "=",
             TokenType::LParen => "(",
@@ -43,7 +40,7 @@ impl Display for TokenType {
 
             TokenType::Separator => ",",
             TokenType::Colon => ":",
-
+            TokenType::Arrow => "->",
 
             TokenType::Operator => "operator",
             TokenType::Type => "type",
@@ -64,15 +61,23 @@ impl From<&Token> for TokenType {
             Equals => TokenType::Equals,
             Comma => TokenType::Separator,
             Colon => TokenType::Colon,
+            Arrow => TokenType::Arrow,
 
-            Println => TokenType::Expression,
-            Let => TokenType::Expression,
-            Fn => TokenType::Expression,
+            Println => TokenType::Keyword,
+            Let => TokenType::Keyword,
+            Fn => TokenType::Keyword,
+            If => TokenType::Keyword,
+            Else => TokenType::Keyword,
+            For => TokenType::Keyword,
+            While => TokenType::Keyword,
 
             Plus => TokenType::Operator,
             Subtract => TokenType::Operator,
             Times => TokenType::Operator,
             Divide => TokenType::Operator,
+            Not => TokenType::Operator,
+            And => TokenType::Operator,
+            Or => TokenType::Operator,
 
             LParen => TokenType::Expression,
             RParen => TokenType::Expression,

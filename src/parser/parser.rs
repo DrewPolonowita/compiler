@@ -1,33 +1,11 @@
 use crate::error::error::CompilerError;
-use crate::interfaces::lexer_interface::{consume_token, consume_type, is_empty, is_peek_match_token, is_peek_match_type, next, peek, peek_check};
+use crate::interfaces::lexer_interface::{is_peek_in, consume_token, consume_type, is_empty, is_peek_match_token, is_peek_match_type, next, peek, peek_check};
 use crate::parser::error::ParserError;
 use crate::lexer::tokens::Token;
 use crate::lexer::lexer::Lexer;
 use crate::lexer::token_type::TokenType;
-use crate::parser::error::ErrorType::ArithmeticExpectedError;
+use crate::parser::parse_tree::*;
 
-#[derive(Debug)]
-#[allow(dead_code)]
-pub enum ParseTree {
-    Program(Box<ParseTree>),
-    Statements(Vec<ParseTree>),
-    Statement(Box<ParseTree>),
-    Assignment(Box<ParseTree>, Box<ParseTree>, Box<ParseTree>),
-    Expression(Box<ParseTree>, Token, Box<ParseTree>),
-    Term(Box<ParseTree>, Token, Box<ParseTree>),
-    Factor(Box<ParseTree>),
-    Println(Box<ParseTree>),
-
-    Closure(Box<ParseTree>),
-    Function(Token, Box<ParseTree>),
-
-    Type(Token),
-
-    Arithmetic(Token),
-    Number(Token),
-    String(Token),
-    Identifier(Token),
-}
 
 impl ParseTree {
     pub fn parse(mut lexer: Lexer) -> Result<ParseTree, CompilerError> {
@@ -36,137 +14,223 @@ impl ParseTree {
 }
 
 fn program(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    Ok(ParseTree::Program(Box::new(statements(lexer)?)))
+    Ok(ParseTree {
+        statements: statements(lexer)?,
+    })
 }
 
-fn statements(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let mut all_statements = Vec::from([statement(lexer)?]);
+fn statements(lexer: &mut Lexer) -> Result<Statements, CompilerError> {
+    let mut statement_list = Vec::new();
+    statement_list.push(statement(lexer)?);
 
-    while let Some(next_token) = peek(lexer)? {
-        if matches!(next_token, Token::LineEnd) {
-            next(lexer)?;
+    while is_peek_match_token(lexer, &Token::LineEnd)? {
+        let _ = next(lexer)?;
 
-            if !is_empty(lexer) & !is_peek_match_token(lexer, &Token::RCurly)? {
-                all_statements.push(statement(lexer)?);
-            }
+        if is_empty(lexer) || is_peek_match_token(lexer, &Token::RCurly)? {
+            break;
+        }
+        statement_list.push(statement(lexer)?);
+    }
+
+    if !is_empty(lexer) && !is_peek_match_token(lexer, &Token::RCurly)? {
+        todo!()
+    }
+
+    Ok(Statements {
+        statements: statement_list,
+    })
+}
+
+fn statement(lexer: &mut Lexer) -> Result<Statement, CompilerError> {
+    if is_peek_match_token(lexer, &Token::If)? {
+        Ok(Statement::IfStatement(if_statement(lexer)?))
+    } else if is_peek_match_token(lexer, &Token::While)? {
+        todo!()
+    } else if is_peek_match_token(lexer, &Token::For)? {
+        todo!()
+    } else if is_peek_match_token(lexer, &Token::Let)? {
+        todo!()
+    } else if is_peek_match_token(lexer, &Token::Fn)? {
+        Ok(Statement::Function(function(lexer)?))
+    } else {
+        Ok(Statement::Expression(expression(lexer)?))
+    }
+}
+
+/* ---------- If Statements ---------- */
+
+fn if_statement(lexer: &mut Lexer) -> Result<IfStatement, CompilerError> {
+    let _ = consume_token(lexer, &Token::If)?;
+    let condition = expression(lexer)?;
+    let body = closure(lexer)?;
+    let conditional = Conditional {
+        condition,
+        body
+    };
+    let mut conditionals = Vec::from([conditional]);
+    let mut otherwise = None;
+
+    while is_peek_match_token(lexer, &Token::Else)? {
+        let _ = next(lexer)?;
+
+        if is_peek_match_token(lexer, &Token::If)? {
+            let _ = next(lexer)?;
+            let condition = expression(lexer)?;
+            let body = closure(lexer)?;
+            let conditional = Conditional {
+                condition,
+                body
+            };
+            conditionals.push(conditional);
         } else {
-            if !is_empty(lexer) {
-                if !is_peek_match_token(lexer, &Token::LineEnd)? & !is_peek_match_token(lexer, &Token::RCurly)? {
-                    consume_token(lexer, &Token::LineEnd)?;
-                };
-            }
-
-            return Ok(ParseTree::Statements(all_statements));
+            otherwise = Some(closure(lexer)?);
+            break;
         }
     }
-    Ok(ParseTree::Statements(all_statements))
+
+    Ok(IfStatement {
+        conditionals,
+        otherwise
+    })
 }
 
-fn statement(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let next_token = peek_check(lexer, &TokenType::Expression)?;
+/* ---------- FUNCTIONS ---------- */
 
-    if matches!(next_token, Token::Let) {
-        Ok(ParseTree::Statement(Box::new(assignment(lexer)?)))
-    } else if matches!(next_token, Token::Println) {
-        Ok(ParseTree::Statement(Box::new(println(lexer)?)))
-    } else if matches!(next_token, Token::LCurly) {
-        Ok(ParseTree::Statement(Box::new(closure(lexer)?)))
-    } else if matches!(next_token, Token::Fn) {
-        Ok(ParseTree::Statement(Box::new(function(lexer)?)))
+fn function(lexer: &mut Lexer) -> Result<Function, CompilerError> {
+    let _  = consume_token(lexer, &Token::Fn)?;
+
+    let identifier = match consume_type(lexer, &TokenType::Identifier)? {
+        Token::Identifier(identifier) => identifier,
+        _ => return unreachable!(),
+    };
+
+    let _  = consume_token(lexer, &Token::LParen)?;
+    let arguments = function_declaration_arguments(lexer)?;
+    let _  = consume_token(lexer, &Token::RParen)?;
+
+    let return_type = if is_peek_match_token(lexer, &Token::Arrow)? {
+        let _  = consume_token(lexer, &Token::Arrow)?;
+        Type::from(consume_type(lexer, &TokenType::Type)?)
     } else {
-        Ok(ParseTree::Statement(Box::new(expres sion(lexer)?)))
+        Type::Void
+    };
+
+    let body = closure(lexer)?;
+
+    Ok(Function {
+        identifier,
+        return_type,
+        arguments,
+        body
+    })
+}
+
+fn function_declaration_arguments(lexer: &mut Lexer) -> Result<Vec<TypedArgument>, CompilerError> {
+    let mut arguments = Vec::new();
+    if !is_peek_match_token(lexer, &Token::RParen)? {
+        let identifier = match consume_type(lexer, &TokenType::Identifier)? {
+            Token::Identifier(identifier) => identifier,
+            _ => return unreachable!(),
+        };
+        let _ = consume_token(lexer, &Token::Colon)?;
+        let arg_type = Type::from(consume_type(lexer, &TokenType::Type)?);
+        arguments.push(TypedArgument {
+            identifier,
+            arg_type
+        })
     }
+
+    while !is_peek_match_token(lexer, &Token::RParen)? {
+        let _ = consume_token(lexer, &Token::Comma)?;
+
+        let identifier = match consume_type(lexer, &TokenType::Identifier)? {
+            Token::Identifier(identifier) => identifier,
+            _ => return unreachable!(),
+        };
+        let _ = consume_token(lexer, &Token::Colon)?;
+        let arg_type = Type::from(consume_type(lexer, &TokenType::Type)?);
+        arguments.push(TypedArgument {
+            identifier,
+            arg_type
+        })
+    }
+    Ok(arguments)
 }
 
-fn function(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let _ = consume_token(lexer, &Token::Fn)?;
-    let function_name = consume_type(lexer, &TokenType::Identifier)?;
-    let _ = consume_token(lexer, &Token::LParen)?;
-    let _ = consume_token(lexer, &Token::RParen)?;
-    let stmts = closure(lexer)?;
-    Ok(ParseTree::Function(function_name, Box::new(stmts)))
-}
-
-fn closure(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
+fn closure(lexer: &mut Lexer) -> Result<Statements, CompilerError> {
     let _ = consume_token(lexer, &Token::LCurly)?;
-    let stmts = statements(lexer)?;
+    let stmts = statements(lexer);
     let _ = consume_token(lexer, &Token::RCurly)?;
-
-    Ok(stmts)
+    stmts
 }
 
-fn assignment(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let _ = consume_token(lexer, &Token::Let)?;
-    let typ = arg_type(lexer)?;
-    let next_token = consume_type(lexer, &TokenType::Identifier)?;
-    let id = next_token;
-    let _ = consume_token(lexer, &Token::Equals)?;
-    Ok(ParseTree::Assignment(Box::new(ParseTree::Identifier(id)), Box::new(typ), Box::new(expression(lexer)?)))
-}
 
-fn arg_type(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let next_token = consume_type(lexer, &TokenType::Type)?;
-    Ok(ParseTree::Type(next_token))
-}
-fn println(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let _ = consume_token(lexer, &Token::Println)?;
-    let _ = consume_token(lexer, &Token::LParen)?;
-    let tree = ParseTree::Println(Box::new(expression(lexer)?));
-    let _ = consume_token(lexer, &Token::RParen)?;
-    Ok(tree)
-}
 
-fn expression(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let mut expression = term(lexer)?;
-    use Token::*;
+/* ---------- EXPRESSIONS ---------- */
 
-    while let Some(next_token) = peek(lexer)? {
-        expression = match next_token {
-            Plus | Subtract => {
-                next(lexer)?;
-                ParseTree::Expression(Box::new(expression), next_token, Box::new(term(lexer)?))
-            },
-            _ => break
-        };
+
+fn expression(lexer: &mut Lexer) -> Result<ExpressionEnum, CompilerError> {
+    let mut value = term(lexer)?;
+
+    while is_peek_in(lexer, &[Token::Plus, Token::Subtract])? {
+        let mut operator = Operator::Plus;
+        if is_peek_match_token(lexer, &Token::Subtract)? {
+            operator = Operator::Subtract;
+        }
+
+        let _ = next(lexer)?;
+
+        value = ExpressionEnum::Expression(Expression {
+            left: Box::new(value),
+            operator,
+            right: Box::new(term(lexer)?),
+        })
     }
 
-    if is_peek_match_type(lexer, &TokenType::Expression)? {
-        let _ = peek_check(lexer, &TokenType::Operator)?;
-    }
-
-    Ok(expression)
+    Ok(value)
 }
 
-fn term(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
-    let mut term = factor(lexer)?;
-    use Token::*;
+fn term(lexer: &mut Lexer) -> Result<ExpressionEnum, CompilerError> {
+    let mut value = factor(lexer)?;
 
-    while let Some(next_token) = peek(lexer)? {
-        term = match next_token {
-            Times | Divide => {
-                next(lexer)?;
-                ParseTree::Expression(Box::new(term), next_token, Box::new(factor(lexer)?))
-            },
-            _ => break
-        };
+    while is_peek_in(lexer, &[Token::Times, Token::Divide])? {
+        let mut operator = Operator::Multiply;
+        if is_peek_match_token(lexer, &Token::Divide)? {
+            operator = Operator::Divide;
+        }
+
+        let _ = next(lexer)?;
+
+        value = ExpressionEnum::Expression(Expression {
+            left: Box::new(value),
+            operator,
+            right: Box::new(factor(lexer)?),
+        })
     }
 
-    Ok(term)
+    Ok(value)
 }
 
-fn factor(lexer: &mut Lexer) -> Result<ParseTree, CompilerError> {
+fn factor(lexer: &mut Lexer) -> Result<ExpressionEnum, CompilerError> {
     let next_token = consume_type(lexer, &TokenType::Expression)?;
-    use Token::*;
 
+    use Token::*;
     match next_token {
-        Number(_) => Ok(ParseTree::Number(next_token)),
-        String(_) => Ok(ParseTree::String(next_token)),
-        Identifier(_) => Ok(ParseTree::Identifier(next_token)),
+        Number(num) => {
+            Ok(ExpressionEnum::Integer(num.parse::<i64>().unwrap()))
+        },
+        String(string) => {
+            Ok(ExpressionEnum::String(string))
+        },
+        Identifier(id) => {
+            Ok(ExpressionEnum::Identifier(id))
+        },
         LParen => {
             let expr = expression(lexer);
-            let _ = consume_token(lexer, &RParen)?;
+            let _ = consume_token(lexer, &Token::RParen)?;
+
             expr
         },
-        _ => unreachable!()
+        _ => todo!()
     }
 }

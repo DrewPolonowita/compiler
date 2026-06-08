@@ -1,3 +1,7 @@
-fn main() {
-    let int x = 5;
+if not x {
+    x+5
+} not x and y else if {
+    x + 2
+} else {
+    x - 1
 }

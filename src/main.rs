@@ -3,7 +3,6 @@ use std::process::Command;
 
 mod lexer;
 mod parser;
-mod compiler;
 mod error;
 mod interfaces;
 mod semantics;
@@ -20,7 +19,13 @@ fn main() {
     let contents = std::fs::read_to_string(filepath).unwrap();
     let lexer = lexer::lexer::Lexer::new(contents);
 
-    let parse_tree = match crate::parser::parser::ParseTree::parse(lexer) {
+    use crate::parser::parse_tree::ParseTree;
+
+    let x = 5 + {
+        5 + 5
+    };
+
+    let parse_tree = match ParseTree::parse(lexer) {
         Ok(tree) => tree,
         Err(error) => {
             eprintln!("{}", error);
