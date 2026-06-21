@@ -6,6 +6,7 @@ mod parser;
 mod error;
 mod interfaces;
 mod semantics;
+mod generate_ir;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -21,10 +22,6 @@ fn main() {
 
     use crate::parser::parse_tree::ParseTree;
 
-    let x = 5 + {
-        5 + 5
-    };
-
     let parse_tree = match ParseTree::parse(lexer) {
         Ok(tree) => tree,
         Err(error) => {
@@ -34,68 +31,4 @@ fn main() {
     };
 
     println!("{:#?}", parse_tree);
-
-    //let c = crate::compiler::compiler::compile(parse_tree);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    //
-    // let filepath = format!("test_executables/{}", filename);
-    //
-    // let c = format!(
-    //     "#include <iostream>
-    //
-    //     int main() {{
-    //         {}
-    //         return 0;
-    //     }}",
-    //     c
-    // );
-    //
-    // std::fs::write("file.cpp", c).unwrap();
-    //
-    // let result = Command::new("g++")
-    //     .arg("file.cpp")
-    //     .arg("-o")
-    //     .arg(&filepath)
-    //     .output()
-    //     .expect("failed to run g++");
-    //
-    // if !result.status.success() {
-    //     eprintln!("{}", String::from_utf8_lossy(&result.stderr));
-    //     return;
-    // }
-    //
-    // //std::fs::remove_file("file.cpp").unwrap();
-    //
-    // let result = Command::new(format!("{}.exe", &filepath))
-    //     .output()
-    //     .expect("failed to run exe");
-    //
-    // if !result.status.success() {
-    //     eprintln!("{}", String::from_utf8_lossy(&result.stderr));
-    // } else {
-    //     println!("{}", String::from_utf8_lossy(&result.stdout));
-    // }
 }

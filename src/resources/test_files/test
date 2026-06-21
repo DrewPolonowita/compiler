@@ -1,6 +1,8 @@
+let bool y = true;
+
 if not x {
     x+5
-} not x and y else if {
+} else if not x and y {
     x + 2
 } else {
     x - 1

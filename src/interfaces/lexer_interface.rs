@@ -14,40 +14,11 @@
 //! fn peek_check(lexer: &mut Lexer, expected_token: &TokenType) -> Result<Token, CompilerError>
 
 use crate::error::error::CompilerError;
+use crate::interfaces::token_type::{Factor, TokenType};
 use crate::lexer::lexer::Lexer;
-use crate::lexer::token_type::TokenType;
 use crate::lexer::tokens::Token;
 use crate::parser::error::{ErrorType, ParserError};
-
-/// Consumes a `Token` and checks to see it matches the expected `TokenType`. If so the expected
-/// `Token` is returned otherwise a `CompilerError` is returned
-/// # Arguments
-/// - `lexer`: A mutable reference to a `Lexer` with the program being parsed
-/// - `expected_type`: A reference to a `TokenType` which is the expected output of the `Lexer`
-/// # Returns
-/// A `Result` enum, with an `Ok` value `Token` or an `Err` value `CompilerError`
-pub fn consume_type(lexer: &mut Lexer, expected_type: &TokenType) -> Result<Token, CompilerError> {
-    match lexer.next() {
-        Some(token) => {
-            let token = token?;
-
-            if token.is_member(expected_type) {
-                Ok(token)
-
-            } else {
-                lexer.step_back();
-                let _ = map_token_type_with_token_to_error(lexer, expected_type, &token)?;
-                unreachable!();
-            }
-        },
-        None => {
-            lexer.step_back();
-
-            let _ = map_token_type_to_error(lexer, &expected_type)?;
-            unreachable!();
-        },
-    }
-}
+use crate::parser::parse_tree::{Operator, Type};
 
 /// Consumes a `Token` and checks to see it matches the expected `Token`. If so the expected
 /// `Token` is returned otherwise a `CompilerError` is returned
@@ -122,30 +93,119 @@ pub fn peek(lexer: &Lexer) -> Result<Option<Token>, CompilerError> {
     }
 }
 
-/// Gets the next `Token` without consuming and checks to see if it matches the `TokenType`.
-/// If the `Token` matches then it's returned. Otherwise, a `CompilerError` is returned
-/// # Arguments
-/// - `lexer` A mutable reference to a lexer with the program being parsed
-/// - `expected_token` A reference to a `TokenType` to match the given token
-/// # Returns
-/// A result enum with the next `Token` or `CompilerError` if the `Token` doesn't match or exist
-pub fn peek_check(lexer: &mut Lexer, expected_token: &TokenType) -> Result<Token, CompilerError> {
-    match peek(lexer)? {
-        Some(token) => {
-            if token.is_member(expected_token) {
-                Ok(token)
+pub fn consume_factor(lexer: &mut Lexer) -> Result<Factor, CompilerError> {
+    let factor_token = check_factor(lexer);
+    next(lexer)?;
+    factor_token
+}
 
-            } else {
-                let _ = map_token_type_with_token_to_error(lexer, expected_token, &token)?;
-                unreachable!();
+pub fn check_factor(lexer: &mut Lexer) -> Result<Factor, CompilerError> {
+    match lexer.peek() {
+        Some(token) => {
+            let token = token?;
+
+            match Factor::option_from(&token) {
+                Some(token) => Ok(token),
+                None => {
+                    let _ = map_token_type_with_token_to_error(lexer, &TokenType::Factor, &token)?;
+                    unreachable!();
+                }
             }
         },
         None => {
-            let _ = map_token_type_to_error(lexer, &expected_token)?;
+
+            let _ = map_token_type_to_error(lexer, &TokenType::Factor)?;
             unreachable!();
         },
     }
 }
+
+
+pub fn consume_type(lexer: &mut Lexer) -> Result<Type, CompilerError> {
+    let type_token = check_type(lexer);
+    next(lexer)?;
+    type_token
+}
+
+pub fn check_type(lexer: &mut Lexer) -> Result<Type, CompilerError> {
+    match lexer.peek() {
+        Some(token) => {
+            let token = token?;
+
+            match Type::option_from(&token) {
+                Some(token) => Ok(token),
+                None => {
+                    let _ = map_token_type_with_token_to_error(lexer, &TokenType::Type, &token)?;
+                    unreachable!();
+                }
+            }
+        },
+        None => {
+
+            let _ = map_token_type_to_error(lexer, &TokenType::Type)?;
+            unreachable!();
+        },
+    }
+}
+
+
+pub fn consume_identifier(lexer: &mut Lexer) -> Result<String, CompilerError> {
+    let identifier = check_identifier(lexer);
+    next(lexer)?;
+    identifier
+}
+
+pub fn check_identifier(lexer: &mut Lexer) -> Result<String, CompilerError> {
+    match lexer.peek() {
+        Some(token) => {
+            let token = token?;
+
+            match token {
+                Token::Identifier(identifier) => {
+                    Ok(identifier)
+                },
+                _ => {
+                    let _ = map_token_type_with_token_to_error(lexer, &TokenType::Identifier, &token)?;
+                    unreachable!();
+                }
+            }
+        },
+        None => {
+
+            let _ = map_token_type_to_error(lexer, &TokenType::Identifier)?;
+            unreachable!();
+        },
+    }
+}
+
+
+pub fn consume_operator(lexer: &mut Lexer) -> Result<Operator, CompilerError> {
+    let identifier = check_operator(lexer);
+    next(lexer)?;
+    identifier
+}
+
+pub fn check_operator(lexer: &mut Lexer) -> Result<Operator, CompilerError> {
+    match lexer.peek() {
+        Some(token) => {
+            let token = token?;
+
+            match Operator::option_from(&token) {
+                Some(token) => Ok(token),
+                None => {
+                    let _ = map_token_type_with_token_to_error(lexer, &TokenType::Operator, &token)?;
+                    unreachable!();
+                }
+            }
+        },
+        None => {
+
+            let _ = map_token_type_to_error(lexer, &TokenType::Operator)?;
+            unreachable!();
+        },
+    }
+}
+
 
 /// Checks if the next `Token` is in the `TokenType` without consuming the token.
 /// # Arguments
@@ -154,20 +214,20 @@ pub fn peek_check(lexer: &mut Lexer, expected_token: &TokenType) -> Result<Token
 /// # Returns
 /// A result enum with `Ok(true)` if the value is the `TokenType`. Otherwise, `Ok(false)`. If an error
 /// is encountered then `CompilerError` is returned
-pub fn is_peek_match_type(lexer: &mut Lexer, expected_type: &TokenType) -> Result<bool, CompilerError> {
-    match peek(lexer)? {
-        Some(token) => {
-            if token.is_member(expected_type) {
-                Ok(true)
-            } else {
-                Ok(false)
-            }
-        },
-        None => {
-            Ok(false)
-        },
-    }
-}
+// pub fn is_peek_match_type(lexer: &mut Lexer, expected_type: &TokenType) -> Result<bool, CompilerError> {
+//     match peek(lexer)? {
+//         Some(token) => {
+//             if token.is_member(expected_type) {
+//                 Ok(true)
+//             } else {
+//                 Ok(false)
+//             }
+//         },
+//         None => {
+//             Ok(false)
+//         },
+//     }
+// }
 
 /// Checks if the next `Token` is in the `Token` without consuming the token.
 /// # Arguments

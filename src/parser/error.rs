@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use crate::error::create_error_diagram::{create_error_diagram, get_line, get_next_line, get_prev_line};
 use crate::lexer::lexer::Lexer;
-use crate::lexer::token_type::TokenType;
+use crate::interfaces::token_type::TokenType;
 use crate::lexer::tokens::Token;
 
 pub struct ParserError {

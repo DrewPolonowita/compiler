@@ -1,9 +1,10 @@
 use crate::error::error::CompilerError;
-use crate::interfaces::lexer_interface::{is_peek_in, consume_token, consume_type, is_empty, is_peek_match_token, is_peek_match_type, next, peek, peek_check};
-use crate::parser::error::ParserError;
+
+use crate::interfaces::lexer_interface::*;
+use crate::interfaces::token_type::*;
+
 use crate::lexer::tokens::Token;
 use crate::lexer::lexer::Lexer;
-use crate::lexer::token_type::TokenType;
 use crate::parser::parse_tree::*;
 
 
@@ -33,7 +34,8 @@ fn statements(lexer: &mut Lexer) -> Result<Statements, CompilerError> {
     }
 
     if !is_empty(lexer) && !is_peek_match_token(lexer, &Token::RCurly)? {
-        todo!()
+        let _ = consume_token(lexer, &Token::LineEnd)?;
+        unreachable!();
     }
 
     Ok(Statements {
@@ -49,13 +51,30 @@ fn statement(lexer: &mut Lexer) -> Result<Statement, CompilerError> {
     } else if is_peek_match_token(lexer, &Token::For)? {
         todo!()
     } else if is_peek_match_token(lexer, &Token::Let)? {
-        todo!()
+        Ok(Statement::Assignment(assignment(lexer)?))
     } else if is_peek_match_token(lexer, &Token::Fn)? {
         Ok(Statement::Function(function(lexer)?))
     } else {
         Ok(Statement::Expression(expression(lexer)?))
     }
 }
+
+/* ---------- Assignment Statement ---------- */
+
+
+fn assignment(lexer: &mut Lexer) -> Result<Assignment, CompilerError> {
+    let _ = consume_token(lexer, &Token::Let)?;
+    let return_type = consume_type(lexer)?;
+    let identifier = consume_identifier(lexer)?;
+    let _ = consume_token(lexer, &Token::Equals)?;
+    let value = expression(lexer)?;
+    Ok(Assignment {
+        identifier,
+        return_type,
+        expression: value
+    })
+}
+
 
 /* ---------- If Statements ---------- */
 
@@ -99,10 +118,7 @@ fn if_statement(lexer: &mut Lexer) -> Result<IfStatement, CompilerError> {
 fn function(lexer: &mut Lexer) -> Result<Function, CompilerError> {
     let _  = consume_token(lexer, &Token::Fn)?;
 
-    let identifier = match consume_type(lexer, &TokenType::Identifier)? {
-        Token::Identifier(identifier) => identifier,
-        _ => return unreachable!(),
-    };
+    let identifier = consume_identifier(lexer)?;
 
     let _  = consume_token(lexer, &Token::LParen)?;
     let arguments = function_declaration_arguments(lexer)?;
@@ -110,7 +126,7 @@ fn function(lexer: &mut Lexer) -> Result<Function, CompilerError> {
 
     let return_type = if is_peek_match_token(lexer, &Token::Arrow)? {
         let _  = consume_token(lexer, &Token::Arrow)?;
-        Type::from(consume_type(lexer, &TokenType::Type)?)
+        consume_type(lexer)?
     } else {
         Type::Void
     };
@@ -128,12 +144,9 @@ fn function(lexer: &mut Lexer) -> Result<Function, CompilerError> {
 fn function_declaration_arguments(lexer: &mut Lexer) -> Result<Vec<TypedArgument>, CompilerError> {
     let mut arguments = Vec::new();
     if !is_peek_match_token(lexer, &Token::RParen)? {
-        let identifier = match consume_type(lexer, &TokenType::Identifier)? {
-            Token::Identifier(identifier) => identifier,
-            _ => return unreachable!(),
-        };
+        let identifier = consume_identifier(lexer)?;
         let _ = consume_token(lexer, &Token::Colon)?;
-        let arg_type = Type::from(consume_type(lexer, &TokenType::Type)?);
+        let arg_type = consume_type(lexer)?;
         arguments.push(TypedArgument {
             identifier,
             arg_type
@@ -143,12 +156,9 @@ fn function_declaration_arguments(lexer: &mut Lexer) -> Result<Vec<TypedArgument
     while !is_peek_match_token(lexer, &Token::RParen)? {
         let _ = consume_token(lexer, &Token::Comma)?;
 
-        let identifier = match consume_type(lexer, &TokenType::Identifier)? {
-            Token::Identifier(identifier) => identifier,
-            _ => return unreachable!(),
-        };
+        let identifier = consume_identifier(lexer)?;
         let _ = consume_token(lexer, &Token::Colon)?;
-        let arg_type = Type::from(consume_type(lexer, &TokenType::Type)?);
+        let arg_type = consume_type(lexer)?;
         arguments.push(TypedArgument {
             identifier,
             arg_type
@@ -164,21 +174,15 @@ fn closure(lexer: &mut Lexer) -> Result<Statements, CompilerError> {
     stmts
 }
 
-
-
 /* ---------- EXPRESSIONS ---------- */
-
 
 fn expression(lexer: &mut Lexer) -> Result<ExpressionEnum, CompilerError> {
     let mut value = term(lexer)?;
 
-    while is_peek_in(lexer, &[Token::Plus, Token::Subtract])? {
-        let mut operator = Operator::Plus;
-        if is_peek_match_token(lexer, &Token::Subtract)? {
-            operator = Operator::Subtract;
-        }
-
-        let _ = next(lexer)?;
+    while is_peek_in(lexer, &[
+        Token::Plus, Token::Subtract, Token::And, Token::Or
+    ])? {
+        let operator = consume_operator(lexer)?;
 
         value = ExpressionEnum::Expression(Expression {
             left: Box::new(value),
@@ -194,12 +198,7 @@ fn term(lexer: &mut Lexer) -> Result<ExpressionEnum, CompilerError> {
     let mut value = factor(lexer)?;
 
     while is_peek_in(lexer, &[Token::Times, Token::Divide])? {
-        let mut operator = Operator::Multiply;
-        if is_peek_match_token(lexer, &Token::Divide)? {
-            operator = Operator::Divide;
-        }
-
-        let _ = next(lexer)?;
+        let operator = consume_operator(lexer)?;
 
         value = ExpressionEnum::Expression(Expression {
             left: Box::new(value),
@@ -212,12 +211,11 @@ fn term(lexer: &mut Lexer) -> Result<ExpressionEnum, CompilerError> {
 }
 
 fn factor(lexer: &mut Lexer) -> Result<ExpressionEnum, CompilerError> {
-    let next_token = consume_type(lexer, &TokenType::Expression)?;
 
-    use Token::*;
-    match next_token {
-        Number(num) => {
-            Ok(ExpressionEnum::Integer(num.parse::<i64>().unwrap()))
+    use Factor::*;
+    match consume_factor(lexer)? {
+        Integer(num) => {
+            Ok(ExpressionEnum::Integer(num))
         },
         String(string) => {
             Ok(ExpressionEnum::String(string))
@@ -225,12 +223,22 @@ fn factor(lexer: &mut Lexer) -> Result<ExpressionEnum, CompilerError> {
         Identifier(id) => {
             Ok(ExpressionEnum::Identifier(id))
         },
+        Not => {
+            Ok(ExpressionEnum::UnaryExpression(
+                UnaryExpression::Not(Box::new(factor(lexer)?))
+            ))
+        }
         LParen => {
             let expr = expression(lexer);
             let _ = consume_token(lexer, &Token::RParen)?;
 
             expr
         },
-        _ => todo!()
+        True => {
+            Ok(ExpressionEnum::Boolean(true))
+        },
+        False => {
+            Ok(ExpressionEnum::Boolean(false))
+        }
     }
 }

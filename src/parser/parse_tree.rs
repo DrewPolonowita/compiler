@@ -1,4 +1,7 @@
+use crate::interfaces::token_type::Factor;
 use crate::lexer::tokens::Token;
+use crate::lexer::tokens::Token::{BoolType, IntType, LParen, Not, StringType};
+
 #[derive(Debug)]
 pub struct ParseTree {
     pub statements: Statements,
@@ -15,6 +18,16 @@ pub enum Statement {
     Function(Function),
     Closure(Statements),
     IfStatement(IfStatement),
+    Assignment(Assignment),
+}
+
+/* ---------- Assignment ---------- */
+
+#[derive(Debug)]
+pub struct Assignment {
+    pub identifier: String,
+    pub return_type: Type,
+    pub expression: ExpressionEnum,
 }
 
 /* ---------- Conditionals ---------- */
@@ -55,14 +68,15 @@ pub enum Type {
     Boolean
 }
 
-impl From<Token> for Type {
-    fn from(token: Token) -> Self {
+impl Type {
+    pub fn option_from(token: &Token) -> Option<Self> {
+
         use Token::*;
         match token {
-            StringType => Type::String,
-            IntType => Type::Integer,
-            BoolType => Type::Boolean,
-            _ => unreachable!()
+            StringType => Some(Type::String),
+            IntType => Some(Type::Integer),
+            BoolType => Some(Type::Boolean),
+            _ => None
         }
     }
 }
@@ -72,10 +86,12 @@ impl From<Token> for Type {
 #[derive(Debug)]
 pub enum ExpressionEnum {
     Expression(Expression),
+    UnaryExpression(UnaryExpression),
     Statements(Statements),
     Identifier(String),
-    Integer(i64),
+    Integer(String),
     String(String),
+    Boolean(bool),
 }
 
 #[derive(Debug)]
@@ -86,9 +102,33 @@ pub struct Expression {
 }
 
 #[derive(Debug)]
+pub enum UnaryExpression {
+    Negate(Box<ExpressionEnum>),
+    Not(Box<ExpressionEnum>)
+}
+
+#[derive(Debug)]
 pub enum Operator {
     Plus,
     Subtract,
     Multiply,
     Divide,
+    And,
+    Or
+}
+
+impl Operator {
+    pub fn option_from(token: &Token) -> Option<Self> {
+
+        use Token::*;
+        match token {
+            Plus => Some(Operator::Plus),
+            Subtract => Some(Operator::Subtract),
+            Times => Some(Operator::Multiply),
+            Divide => Some(Operator::Divide),
+            And => Some(Operator::And),
+            Or => Some(Operator::Or),
+            _ => None
+        }
+    }
 }
