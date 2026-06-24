@@ -1,34 +1,16 @@
-use crate::generate_ir::ir::{IRLine, SingleAddress};
+use crate::generate_ir::handle_call_stack::VariableStack;
+pub(crate) use crate::generate_ir::ir::{IRLine, Label, LabelMaker, SingleAddress, Temp};
 use crate::interfaces::lexer_interface::next;
 use crate::parser::parse_tree::*;
 
-pub struct LabelMaker {
-    curr_num: usize,
-    symbol: String,
-}
-
-impl LabelMaker {
-    pub fn next(&mut self) -> String {
-        let label = format!("{}{}", self.symbol, self.curr_num);
-        self.curr_num += 1;
-        label
-    }
-
-    pub fn new(label: &str) -> Self {
-        Self {
-            curr_num: 0usize,
-            symbol: label.to_string(),
-        }
-    }
-}
-
 impl ParseTree {
     pub fn generate_ir(&self) -> Vec<IRLine> {
-        let mut label_generator = LabelMaker::new("l");
-        let mut temp_geneartor = LabelMaker::new("t");
+        let mut label_generator: LabelMaker<Label> = LabelMaker::new();
+        let mut temp_geneartor: LabelMaker<Temp> = LabelMaker::new();
+        let mut stack = VariableStack::new();
 
         let mut program: Vec<IRLine> = Vec::new();
-        self.statements.generate_ir(&mut label_generator, &mut temp_geneartor, &mut program);
+        self.statements.generate_ir(&mut label_generator, &mut temp_geneartor, &mut program, &mut stack);
 
         program
     }
@@ -36,47 +18,78 @@ impl ParseTree {
 
 impl Statements {
     pub fn generate_ir(
-        &self, label_generator: &mut LabelMaker, temp_generator: &mut LabelMaker, program: &mut Vec<IRLine>
+        &self, label_generator: &mut LabelMaker<Label>, temp_generator: &mut LabelMaker<Temp>,
+        program: &mut Vec<IRLine>, stack: &mut VariableStack
     ) {
 
+        stack.stack();
+
         for stmt in &self.statements {
-            stmt.generate_ir(label_generator, temp_generator, program);
+            stmt.generate_ir(label_generator, temp_generator, program, stack);
         }
+
+        stack.pop();
     }
 }
 
 impl Statement {
     pub fn generate_ir(
-        &self, label_generator: &mut LabelMaker, temp_generator: &mut LabelMaker, program: &mut Vec<IRLine>
+        &self, label_generator: &mut LabelMaker<Label>, temp_generator: &mut LabelMaker<Temp>,
+        program: &mut Vec<IRLine>, stack: &mut VariableStack
     ) {
 
         use Statement::*;
         match self {
             Expression(expression) => {
-                expression.generate_ir(label_generator, temp_generator, program);
+                expression.generate_ir(label_generator, temp_generator, program, stack);
             },
             Function(function) => {},
             Closure(statements) => {},
             IfStatement(if_statement) => {
-                if_statement.generate_ir(label_generator, temp_generator, program);
+                if_statement.generate_ir(label_generator, temp_generator, program, stack);
             },
             Assignment(assignment) => {
-                assignment.generate_ir(label_generator, temp_generator, program);
+                assignment.generate_ir(label_generator, temp_generator, program, stack);
             },
+            Reassignment(reassignment) => {
+                reassignment.generate_ir(label_generator, temp_generator, program, stack);
+            },
+            WhileLoop(while_loop) => {
+                while_loop.generate_ir(label_generator, temp_generator, program, stack);
+            }
         };
     }
 }
 
 impl Assignment {
     pub fn generate_ir(
-        &self, label_generator: &mut LabelMaker, temp_generator: &mut LabelMaker, program: &mut Vec<IRLine>
-    ) -> String {
-        let label = self.expression.generate_ir(label_generator, temp_generator, program);
+        &self, label_generator: &mut LabelMaker<Label>, temp_generator: &mut LabelMaker<Temp>,
+        program: &mut Vec<IRLine>, stack: &mut VariableStack
+    ) -> Temp {
+        let label = self.expression.generate_ir(label_generator, temp_generator, program, stack);
 
+
+        let var = stack.create(&self.identifier, temp_generator);
         program.push(IRLine::SingleAddress(SingleAddress::new(
-            self.identifier.to_string(), label
+            var.clone(), label
         )));
 
-        self.identifier.to_string()
+        var
+    }
+}
+
+impl Reassignment {
+    pub fn generate_ir(
+        &self, label_generator: &mut LabelMaker<Label>, temp_generator: &mut LabelMaker<Temp>,
+        program: &mut Vec<IRLine>, stack: &mut VariableStack
+    ) -> Temp {
+        let label = self.expression.generate_ir(label_generator, temp_generator, program, stack);
+
+        let var = stack.get(&self.identifier, temp_generator);
+        program.push(IRLine::SingleAddress(SingleAddress::new(
+            var.clone(), label
+        )));
+
+        var
     }
 }

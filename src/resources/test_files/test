@@ -1,10 +1,14 @@
-let int x = 5;
-let int y = 4;
+let int x = 0;
+let int y = 1;
 
-if x >= y {
-    x + 5;
+let int z = x + y;
+
+if z >= 2 {
+    z = 2;
 } else {
-    x + 2;
+    z = 3;
+    let int z = 5;
+    z = 10
 };
 
-let int z = 5;
+let bool last_var = z == 3;

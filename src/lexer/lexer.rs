@@ -38,7 +38,7 @@ impl Lexer {
 
     /// Gets the number of whitespace chars from self.current_index to the next token.
     /// This is used to calculate an effective index
-    fn get_no_whitespace_chars(&self) -> usize {
+    fn get_no_whitespace_chars(&self, offset: usize) -> usize {
         let mut whitespace = 0;
         let program_bytes = self.program.as_bytes();
 
@@ -54,17 +54,26 @@ impl Lexer {
     }
 
     /// Adds the number of whitespace chars to the current index to get the index of the next token
-    fn effective_index(&self) -> usize {
-        self.current_index + self.get_no_whitespace_chars()
+    fn effective_index(&self, offset: usize) -> usize {
+        if offset > 0 {
+            self.current_index + self.get_no_whitespace_chars(offset)
+        } else {
+            self.current_index + self.get_no_whitespace_chars(0)
+        }
     }
 
     /// Returns the longest token from the effective index; if an error is met by there not being a valid
     /// next token then a LexerError is returned
-    fn get_longest_matched_string(&self) -> Result<(Token, usize), LexerError> {
+    fn get_longest_matched_string(&self, offset: usize) -> Result<(Token, usize), LexerError> {
         let mut longest_token: Option<Token> = None;
         let mut longest_string_length: usize = 0;
 
-        let text = &self.program[self.effective_index()..];
+        let text = &self.program[
+            self.effective_index(offset)..];
+
+        if offset > 0 {
+            println!("{}", &text);
+        }
 
         for (token, pattern) in TOKENS {
             let re = Regex::new(pattern).unwrap();
@@ -82,7 +91,7 @@ impl Lexer {
         if let Some(longest_token) = longest_token {
             Ok((longest_token, longest_string_length))
         } else {
-            Err(get_error(&self.program, self.effective_index()))
+            Err(get_error(&self.program, self.effective_index(offset)))
         }
     }
 
@@ -90,29 +99,38 @@ impl Lexer {
     fn next_token(&mut self) -> Result<Token, LexerError> {
         self.prev_index = self.current_index;
 
-        if self.effective_index() >= self.program.len() {
+        if self.effective_index(0) >= self.program.len() {
             return Ok(Token::EOF);
         }
-        let (token, length) = self.get_longest_matched_string()?;
-        self.current_index = self.effective_index() + length;
+        let (token, length) = self.get_longest_matched_string(0)?;
+        self.current_index = self.effective_index(0) + length;
         Ok(token)
     }
 
     /// Returns the next token without incrementing the iterator to the next token
     pub fn peek(&self) -> Option<Result<Token, LexerError>> {
-        if self.effective_index() >= self.program.len() {
+        if self.effective_index(0) >= self.program.len() {
             return None;
         }
 
-        match self.get_longest_matched_string() {
+        match self.get_longest_matched_string(0) {
             Ok((token, _)) => Some(Ok(token)),
             Err(e) => Some(Err(e))
         }
     }
 
+    pub fn peek_second(&mut self) -> Option<Result<Token, LexerError>> {
+        let prev_index = self.current_index;
+        let _ = self.next_token();
+        let peek = self.peek();
+        self.current_index = prev_index;
+
+        peek
+    }
+
     /// Returns true if the iterator is at the end of the file
     pub fn is_empty(&self) -> bool {
-        self.effective_index() >= self.program.len()
+        self.effective_index(0) >= self.program.len()
     }
 
     /// Returns the program string
@@ -122,7 +140,7 @@ impl Lexer {
 
     /// Returns the current index
     pub fn get_current_index(&self) -> usize {
-        self.effective_index()
+        self.effective_index(0)
     }
 
     /// Returns to the previous index. Only works once

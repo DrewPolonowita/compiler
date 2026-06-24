@@ -1,6 +1,5 @@
 use crate::interfaces::token_type::Factor;
 use crate::lexer::tokens::Token;
-use crate::lexer::tokens::Token::{BoolType, IntType, LParen, Not, StringType};
 
 #[derive(Debug)]
 pub struct ParseTree {
@@ -19,6 +18,8 @@ pub enum Statement {
     Closure(Statements),
     IfStatement(IfStatement),
     Assignment(Assignment),
+    WhileLoop(WhileLoop),
+    Reassignment(Reassignment),
 }
 
 /* ---------- Assignment ---------- */
@@ -27,6 +28,12 @@ pub enum Statement {
 pub struct Assignment {
     pub identifier: String,
     pub return_type: Type,
+    pub expression: ExpressionEnum,
+}
+
+#[derive(Debug)]
+pub struct Reassignment {
+    pub identifier: String,
     pub expression: ExpressionEnum,
 }
 
@@ -40,6 +47,12 @@ pub struct IfStatement {
 
 #[derive(Debug)]
 pub struct Conditional {
+    pub condition: ExpressionEnum,
+    pub body: Statements
+}
+
+#[derive(Debug)]
+pub struct WhileLoop {
     pub condition: ExpressionEnum,
     pub body: Statements
 }

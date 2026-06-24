@@ -1,5 +1,80 @@
 use std::fmt::Display;
+use std::hash::Hash;
 use crate::parser::parse_tree::Operator;
+
+#[derive(Clone)]
+pub enum Value {
+    Temp(Temp),
+    Prim(String)
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use Value::*;
+        match self {
+            Temp(temp) => write!(f, "{}", temp),
+            Prim(value) => write!(f, "{}", value)
+        }
+    }
+}
+
+pub struct LabelMaker<T> {
+    curr_num: usize,
+    _output: std::marker::PhantomData<T>
+}
+
+impl<T: FromId> LabelMaker<T> {
+    pub fn next(&mut self) -> T {
+        let id = self.curr_num;
+        self.curr_num += 1;
+        T::from_id(id)
+    }
+
+    pub fn new() -> Self {
+        Self {
+            curr_num: 0usize,
+            _output: std::marker::PhantomData
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Temp {
+    id: usize
+}
+
+#[derive(Clone)]
+pub struct Label {
+    id: usize
+}
+
+impl FromId for Label {
+    fn from_id(id: usize) -> Self {
+        Label { id }
+    }
+}
+
+impl Display for Label {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "l{}", self.id)
+    }
+}
+
+impl FromId for Temp {
+    fn from_id(id: usize) -> Self {
+        Temp { id }
+    }
+}
+
+pub trait FromId {
+    fn from_id(id: usize) -> Self;
+}
+
+impl Display for Temp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "t{}", self.id)
+    }
+}
 
 
 pub enum IRLine {
@@ -8,7 +83,7 @@ pub enum IRLine {
     CmpSingleAddress(CmpSingleAddress),
     CmpThreeAddress(CmpThreeAddress),
     Goto(Goto),
-    Label(Label),
+    Label(LabelBlock),
 }
 
 impl Display for IRLine {
@@ -26,14 +101,14 @@ impl Display for IRLine {
 }
 
 pub struct ThreeAddress {
-    pub name: String,
+    pub name: Temp,
     pub operator: Operator,
-    pub left: String,
-    pub right: String
+    pub left: Value,
+    pub right: Value
 }
 
 impl ThreeAddress {
-    pub fn new(name: String, operator: Operator, left: String, right: String) -> Self {
+    pub fn new(name: Temp, operator: Operator, left: Value, right: Value) -> Self {
         Self {name, operator, left, right}
     }
 }
@@ -45,12 +120,12 @@ impl Display for ThreeAddress {
 }
 
 pub struct SingleAddress {
-    pub name: String,
-    pub variable: String,
+    pub name: Temp,
+    pub variable: Value,
 }
 
 impl SingleAddress {
-    pub fn new(name: String, variable: String) -> Self {
+    pub fn new(name: Temp, variable: Value) -> Self {
         Self { name, variable }
     }
 }
@@ -63,13 +138,13 @@ impl Display for SingleAddress {
 
 pub struct CmpThreeAddress {
     pub comparison: Comparison,
-    pub left: String,
-    pub right: String,
-    pub label: String,
+    pub left: Value,
+    pub right: Value,
+    pub label: Label,
 }
 
 impl CmpThreeAddress {
-    pub fn new(comparison: Comparison, left: String, right: String, label: String) -> Self {
+    pub fn new(comparison: Comparison, left: Value, right: Value, label: Label) -> Self {
         Self {comparison, left, right, label}
     }
 }
@@ -82,12 +157,12 @@ impl Display for CmpThreeAddress {
 
 pub struct CmpSingleAddress {
     pub comparison: Comparison,
-    pub variable: String,
-    pub label: String,
+    pub variable: Value,
+    pub label: Label,
 }
 
 impl CmpSingleAddress {
-    pub fn new(comparison: Comparison, variable: String, label: String) -> Self {
+    pub fn new(comparison: Comparison, variable: Value, label: Label) -> Self {
         Self { comparison, variable, label }
     }
 }
@@ -99,11 +174,11 @@ impl Display for CmpSingleAddress {
 }
 
 pub struct Goto {
-    pub label: String
+    pub label: Label
 }
 
 impl Goto {
-    pub fn new(label: String) -> Self {
+    pub fn new(label: Label) -> Self {
         Self { label }
     }
 }
@@ -114,17 +189,17 @@ impl Display for Goto {
     }
 }
 
-pub struct Label {
-    pub label: String
+pub struct LabelBlock {
+    pub label: Label
 }
 
-impl Label {
-    pub fn new(label: String) -> Self {
+impl LabelBlock {
+    pub fn new(label: Label) -> Self {
         Self { label }
     }
 }
 
-impl Display for Label {
+impl Display for LabelBlock {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}: ", self.label)
     }
