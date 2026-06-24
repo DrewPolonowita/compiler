@@ -1,9 +1,10 @@
-let bool y = true;
+let int x = 5;
+let int y = 4;
 
-if not x {
-    x+5
-} else if not x and y {
-    x + 2
+if x >= y {
+    x + 5;
 } else {
-    x - 1
-}
+    x + 2;
+};
+
+let int z = 5;

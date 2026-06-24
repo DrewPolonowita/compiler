@@ -5,6 +5,7 @@ use crate::interfaces::token_type::*;
 
 use crate::lexer::tokens::Token;
 use crate::lexer::lexer::Lexer;
+use crate::parser::parse_expressions::expression;
 use crate::parser::parse_tree::*;
 
 
@@ -172,73 +173,4 @@ fn closure(lexer: &mut Lexer) -> Result<Statements, CompilerError> {
     let stmts = statements(lexer);
     let _ = consume_token(lexer, &Token::RCurly)?;
     stmts
-}
-
-/* ---------- EXPRESSIONS ---------- */
-
-fn expression(lexer: &mut Lexer) -> Result<ExpressionEnum, CompilerError> {
-    let mut value = term(lexer)?;
-
-    while is_peek_in(lexer, &[
-        Token::Plus, Token::Subtract, Token::And, Token::Or
-    ])? {
-        let operator = consume_operator(lexer)?;
-
-        value = ExpressionEnum::Expression(Expression {
-            left: Box::new(value),
-            operator,
-            right: Box::new(term(lexer)?),
-        })
-    }
-
-    Ok(value)
-}
-
-fn term(lexer: &mut Lexer) -> Result<ExpressionEnum, CompilerError> {
-    let mut value = factor(lexer)?;
-
-    while is_peek_in(lexer, &[Token::Times, Token::Divide])? {
-        let operator = consume_operator(lexer)?;
-
-        value = ExpressionEnum::Expression(Expression {
-            left: Box::new(value),
-            operator,
-            right: Box::new(factor(lexer)?),
-        })
-    }
-
-    Ok(value)
-}
-
-fn factor(lexer: &mut Lexer) -> Result<ExpressionEnum, CompilerError> {
-
-    use Factor::*;
-    match consume_factor(lexer)? {
-        Integer(num) => {
-            Ok(ExpressionEnum::Integer(num))
-        },
-        String(string) => {
-            Ok(ExpressionEnum::String(string))
-        },
-        Identifier(id) => {
-            Ok(ExpressionEnum::Identifier(id))
-        },
-        Not => {
-            Ok(ExpressionEnum::UnaryExpression(
-                UnaryExpression::Not(Box::new(factor(lexer)?))
-            ))
-        }
-        LParen => {
-            let expr = expression(lexer);
-            let _ = consume_token(lexer, &Token::RParen)?;
-
-            expr
-        },
-        True => {
-            Ok(ExpressionEnum::Boolean(true))
-        },
-        False => {
-            Ok(ExpressionEnum::Boolean(false))
-        }
-    }
 }

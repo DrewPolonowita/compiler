@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use crate::lexer::tokens::Token::{And, LParen, Or, RParen};
+use crate::lexer::tokens::Token::{And, LParen, Lt, Or, RParen};
 
 #[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
@@ -33,6 +33,13 @@ pub enum Token {
     And,
     Or,
 
+    Eq,
+    Neq,
+    Leq,
+    Geq,
+    Lt,
+    Gt,
+
     // Types
     IntType,
     StringType,
@@ -51,7 +58,7 @@ pub enum Token {
     EOF
 }
 
-pub const TOKENS: [(Token, &str); 31] = [
+pub const TOKENS: [(Token, &str); 37] = [
     (Token::Println, "^println"),
     (Token::Let, "^let"),
     (Token::Fn, "^fn"),
@@ -69,11 +76,21 @@ pub const TOKENS: [(Token, &str); 31] = [
     (Token::LCurly, "^\\{"),
     (Token::RCurly, "^\\}"),
 
-    (Token::Equals, "^="),
     (Token::Plus, "^\\+"),
     (Token::Subtract, "^-"),
     (Token::Times, "^\\*"),
     (Token::Divide, "^/"),
+
+    (Token::Eq, "^=="),
+    (Token::Neq, "^!="),
+    (Token::Lt, "^<"),
+    (Token::Gt, "^>"),
+    (Token::Leq, "^<="),
+    (Token::Geq, "^>="),
+
+
+    (Token::Equals, "^="),
+
     (Token::Not, "^not"),
     (Token::And, "^and"),
     (Token::Or, "^or"),
@@ -121,6 +138,14 @@ impl Display for Token {
             Arrow => "->",
 
             Equals => "=",
+
+            Eq => "==",
+            Neq => "!=",
+            Lt => "<",
+            Gt => ">",
+            Leq => "<=",
+            Geq => ">=",
+
             LParen => "(",
             RParen => ")",
             LCurly => "{",

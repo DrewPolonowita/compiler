@@ -107,14 +107,21 @@ pub enum UnaryExpression {
     Not(Box<ExpressionEnum>)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Operator {
     Plus,
     Subtract,
     Multiply,
     Divide,
     And,
-    Or
+    Or,
+
+    Eq,
+    Neq,
+    Lt,
+    Gt,
+    Leq,
+    Geq
 }
 
 impl Operator {
@@ -128,7 +135,28 @@ impl Operator {
             Divide => Some(Operator::Divide),
             And => Some(Operator::And),
             Or => Some(Operator::Or),
+
+            Eq => Some(Operator::Eq),
+            Neq => Some(Operator::Neq),
+            Lt => Some(Operator::Lt),
+            Gt => Some(Operator::Gt),
+            Leq => Some(Operator::Leq),
+            Geq => Some(Operator::Geq),
             _ => None
         }
+    }
+
+    pub fn symbol(&self) -> String {
+
+        use Operator::*;
+        let char = match self {
+            Plus => "+",
+            Subtract => "-",
+            Multiply => "*",
+            Divide => "/",
+            _ => todo!()
+        };
+
+        String::from(char)
     }
 }

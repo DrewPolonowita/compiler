@@ -1,5 +1,5 @@
 use std::env;
-use std::process::Command;
+use crate::generate_ir::ir::IRLine;
 
 mod lexer;
 mod parser;
@@ -30,5 +30,19 @@ fn main() {
         },
     };
 
-    println!("{:#?}", parse_tree);
+    println!("{:#?}", &parse_tree);
+    let mut n = 0;
+    for line in parse_tree.generate_ir() {
+        if matches!(line, IRLine::Label(_)) && n > 0 {
+            n -= 1;
+        }
+
+        println!("{}{}", "   ".repeat(n), &line);
+
+        if matches!(line, IRLine::Label(_) | IRLine::CmpSingleAddress(_) | IRLine::CmpThreeAddress(_)) {
+            n += 1
+        } else if matches!(line, IRLine::Goto(_)) && n > 0 {
+            n -= 1
+        }
+    }
 }
