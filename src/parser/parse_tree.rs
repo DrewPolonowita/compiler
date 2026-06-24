@@ -1,5 +1,5 @@
-use crate::interfaces::token_type::Factor;
 use crate::lexer::tokens::Token;
+use crate::parser::parse_tree::Operator::And;
 
 #[derive(Debug)]
 pub struct ParseTree {
@@ -73,7 +73,7 @@ pub struct TypedArgument {
     pub arg_type: Type
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Type {
     Void,
     String,
@@ -167,7 +167,16 @@ impl Operator {
             Subtract => "-",
             Multiply => "*",
             Divide => "/",
-            _ => todo!()
+
+            And => "and",
+            Or => "or",
+
+            Eq => "==",
+            Neq => "!=",
+            Gt => ">",
+            Lt => "<",
+            Geq => ">=",
+            Leq => "<="
         };
 
         String::from(char)

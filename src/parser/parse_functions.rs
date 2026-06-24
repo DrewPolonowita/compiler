@@ -2,7 +2,7 @@ use crate::error::error::CompilerError;
 use crate::interfaces::lexer_interface::{consume_identifier, consume_token, consume_type, is_peek_match_token};
 use crate::lexer::lexer::Lexer;
 use crate::lexer::tokens::Token;
-use crate::parser::parse_tree::{Function, Statements, Type, TypedArgument};
+use crate::parser::parse_tree::{Function, Type, TypedArgument};
 use crate::parser::parser::closure;
 
 pub fn function(lexer: &mut Lexer) -> Result<Function, CompilerError> {

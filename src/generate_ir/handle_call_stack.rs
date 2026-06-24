@@ -12,7 +12,7 @@ impl VariableStack {
         }
     }
 
-    pub fn get(&mut self, var: &str, temp_maker: &mut LabelMaker<Temp>) -> Temp {
+    pub fn get(&mut self, var: &str) -> Temp {
         for layer in self.stack.iter().rev() {
             if layer.contains_key(var) {
                 return layer.get(var).unwrap().clone();
@@ -32,7 +32,7 @@ impl VariableStack {
 
     pub fn create(&mut self, var: &str, temp_maker: &mut LabelMaker<Temp>) -> Temp {
         let temp = temp_maker.next();
-        let mut layer = self.stack.last_mut().unwrap();
+        let layer = self.stack.last_mut().unwrap();
         layer.insert(var.to_string(), temp.clone());
 
         temp

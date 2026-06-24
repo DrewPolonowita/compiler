@@ -1,6 +1,5 @@
 use crate::error::error::CompilerError;
 use crate::interfaces::lexer_interface::{consume_factor, consume_operator, consume_token, is_peek_in};
-use crate::interfaces::token_type::Factor::{False, Identifier, Integer, LParen, Not, String, True};
 use crate::lexer::lexer::Lexer;
 use crate::lexer::tokens::Token;
 use crate::parser::parse_tree::{Expression, ExpressionEnum, UnaryExpression};

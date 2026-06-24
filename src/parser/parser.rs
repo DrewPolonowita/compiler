@@ -1,7 +1,6 @@
 use crate::error::error::CompilerError;
 
 use crate::interfaces::lexer_interface::*;
-use crate::interfaces::token_type::*;
 
 use crate::lexer::tokens::Token;
 use crate::lexer::lexer::Lexer;
@@ -59,6 +58,8 @@ fn statement(lexer: &mut Lexer) -> Result<Statement, CompilerError> {
         Ok(Statement::Function(function(lexer)?))
     } else if let Some(Ok(next_next_token)) = lexer.peek_second() && matches!(next_next_token, Token::Equals) {
         Ok(Statement::Reassignment(reassignment(lexer)?))
+    } else if is_peek_match_token(lexer, &Token::Return)? {
+        todo!()
     } else {
         Ok(Statement::Expression(expression(lexer)?))
     }

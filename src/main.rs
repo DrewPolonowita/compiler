@@ -30,6 +30,14 @@ fn main() {
         },
     };
 
+    match parse_tree.check_semantics() {
+        Ok(_) => {},
+        Err(error) => {
+            eprintln!("{}", error);
+            std::process::exit(0);
+        }
+    }
+
     println!("{:#?}", &parse_tree);
     let mut n = 0;
     for line in parse_tree.generate_ir() {

@@ -1,5 +1,4 @@
 use std::fmt::Display;
-use std::hash::Hash;
 use crate::parser::parse_tree::Operator;
 
 #[derive(Clone)]

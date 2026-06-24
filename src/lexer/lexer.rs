@@ -38,7 +38,7 @@ impl Lexer {
 
     /// Gets the number of whitespace chars from self.current_index to the next token.
     /// This is used to calculate an effective index
-    fn get_no_whitespace_chars(&self, offset: usize) -> usize {
+    fn get_no_whitespace_chars(&self) -> usize {
         let mut whitespace = 0;
         let program_bytes = self.program.as_bytes();
 
@@ -56,9 +56,9 @@ impl Lexer {
     /// Adds the number of whitespace chars to the current index to get the index of the next token
     fn effective_index(&self, offset: usize) -> usize {
         if offset > 0 {
-            self.current_index + self.get_no_whitespace_chars(offset)
+            self.current_index + self.get_no_whitespace_chars()
         } else {
-            self.current_index + self.get_no_whitespace_chars(0)
+            self.current_index + self.get_no_whitespace_chars()
         }
     }
 

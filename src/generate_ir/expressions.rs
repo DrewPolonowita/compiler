@@ -14,11 +14,11 @@ impl ExpressionEnum {
             Expression(expression) => {
                 expression.generate_ir(label_generator, temp_generator, program, stack)
             },
-            UnaryExpression(unary_expression) => todo!(),
-            Statements(statements) => todo!(),
-            Identifier(identifier) => Value::Temp(stack.get(&identifier, temp_generator)),
+            UnaryExpression(_unary_expression) => todo!(),
+            Statements(_statements) => todo!(),
+            Identifier(identifier) => Value::Temp(stack.get(&identifier)),
             Integer(int) => Value::Prim(int.to_string()),
-            String(string) => unreachable!(),
+            String(_string) => unreachable!(),
             Boolean(bool) => {
                 if bool == &true {
                     Value::Prim("1".to_string())

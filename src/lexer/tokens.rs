@@ -1,5 +1,4 @@
 use std::fmt::Display;
-use crate::lexer::tokens::Token::{And, LParen, Lt, Or, RParen};
 
 #[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
@@ -52,13 +51,15 @@ pub enum Token {
     Identifier_,
     Identifier(String),
 
+    Return,
+
     True,
     False,
 
     EOF
 }
 
-pub const TOKENS: [(Token, &str); 37] = [
+pub const TOKENS: [(Token, &str); 38] = [
     (Token::Println, "^println"),
     (Token::Let, "^let"),
     (Token::Fn, "^fn"),
@@ -88,7 +89,7 @@ pub const TOKENS: [(Token, &str); 37] = [
     (Token::Leq, "^<="),
     (Token::Geq, "^>="),
 
-
+    (Token::Return, "^return"),
     (Token::Equals, "^="),
 
     (Token::Not, "^not"),
@@ -161,6 +162,8 @@ impl Display for Token {
 
             True => "true",
             False => "false",
+
+            Return => "return",
 
             IntType => "int",
             StringType => "string",

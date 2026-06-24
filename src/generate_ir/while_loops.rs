@@ -1,5 +1,5 @@
 use crate::generate_ir::handle_call_stack::VariableStack;
-use crate::generate_ir::ir::{LabelMaker, Temp, Label, Value};
+use crate::generate_ir::ir::{LabelMaker, Temp, Label};
 use crate::generate_ir::ir::{CmpSingleAddress, Comparison, Goto, IRLine, LabelBlock};
 use crate::parser::parse_tree::WhileLoop;
 

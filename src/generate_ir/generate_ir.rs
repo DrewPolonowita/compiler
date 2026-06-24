@@ -1,6 +1,5 @@
 use crate::generate_ir::handle_call_stack::VariableStack;
 pub(crate) use crate::generate_ir::ir::{IRLine, Label, LabelMaker, SingleAddress, Temp};
-use crate::interfaces::lexer_interface::next;
 use crate::parser::parse_tree::*;
 
 impl ParseTree {
@@ -43,8 +42,8 @@ impl Statement {
             Expression(expression) => {
                 expression.generate_ir(label_generator, temp_generator, program, stack);
             },
-            Function(function) => {},
-            Closure(statements) => {},
+            Function(_function) => {},
+            Closure(_statements) => {},
             IfStatement(if_statement) => {
                 if_statement.generate_ir(label_generator, temp_generator, program, stack);
             },
@@ -85,7 +84,7 @@ impl Reassignment {
     ) -> Temp {
         let label = self.expression.generate_ir(label_generator, temp_generator, program, stack);
 
-        let var = stack.get(&self.identifier, temp_generator);
+        let var = stack.get(&self.identifier);
         program.push(IRLine::SingleAddress(SingleAddress::new(
             var.clone(), label
         )));
